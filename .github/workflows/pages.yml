@@ -1,0 +1,65 @@
+name: Publish FGK Corp to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_id: ${{ steps.bundle.outputs.artifact_id }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Validate and assemble the site
+        run: |
+          set -eu
+          for script in assets/*.js admin/*.js; do
+            node --input-type=module --check < "$script"
+          done
+          mkdir _site
+          cp -R index.html assets admin catalog vendor _site/
+          python3 scripts/check-catalog.py --output _site/catalog/products.json
+      - id: bundle
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Wait for GitHub to index this run's artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_ID: ${{ needs.package.outputs.artifact_id }}
+        run: |
+          set -eu
+          test -n "$EXPECTED_ID"
+          endpoint="repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts"
+          for delay in 1 2 4 8 16; do
+            id=$(gh api "$endpoint" --jq '.artifacts[] | select(.name == "github-pages" and .expired == false) | .id')
+            if [ "$id" = "$EXPECTED_ID" ]; then
+              exit 0
+            fi
+            sleep "$delay"
+          done
+          echo "Pages artifact $EXPECTED_ID was not indexed" >&2
+          exit 1
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
