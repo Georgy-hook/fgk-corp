@@ -1,0 +1,22 @@
+{
+  "name": "Буран БТС-001",
+  "description": "Масштабная модель испытательного макета с ВДНХ. Грузовой отсек и воздушный тормоз раскрываются, а шасси снимается для осмотра днища.",
+  "category": "Космонавтика",
+  "image": "assets/hero.webp",
+  "viewer": "index.html?embed=1",
+  "exhibit": "index.html",
+  "stl": [
+    { "file": "files/Buran-STL.zip", "label": "Комплект STL" }
+  ],
+  "colors": [
+    { "name": "Музейный", "hex": "#edece7" },
+    { "name": "Песочный", "hex": "#c8a578" },
+    { "name": "Серый", "hex": "#6c8190" }
+  ],
+  "details": [
+    { "label": "Масштаб", "value": "1:144" },
+    { "label": "Размер в сборке", "value": "255 × 167 × 126 мм" },
+    { "label": "Комплект", "value": "18 деталей и 2 калибра" }
+  ],
+  "gallery": ["assets/cockpit.webp", "assets/fin.webp", "assets/gear.webp"]
+}

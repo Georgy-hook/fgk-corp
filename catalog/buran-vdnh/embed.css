@@ -1,0 +1,34 @@
+.paint-picker {
+  margin-block: 0.9rem 0;
+}
+.exhibit-embedded .mast,
+.exhibit-embedded .skip,
+.exhibit-embedded .hero-caption h1,
+.exhibit-embedded .hero-caption .standfirst,
+.exhibit-embedded main > :not(.hero),
+.exhibit-embedded footer {
+  display: none;
+}
+.exhibit-embedded,
+.exhibit-embedded .hero {
+  background: var(--color-studio);
+}
+.exhibit-embedded .hero {
+  padding-block: 0 1rem;
+}
+.exhibit-embedded .hero-caption {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.4rem;
+}
+.exhibit-embedded .stage {
+  height: clamp(11.25rem, 56vw, 30rem);
+  margin-inline: 0;
+}
+.exhibit-embedded .poster {
+  width: 100%;
+  left: 0;
+}
+.exhibit-embedded .paint-picker {
+  justify-content: flex-end;
+}
