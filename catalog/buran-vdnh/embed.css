@@ -1,3 +1,6 @@
+:root {
+  --gutter: max(clamp(1.25rem, 5.4vw, 5rem), env(safe-area-inset-left), env(safe-area-inset-right));
+}
 .paint-picker {
   margin-block: 0.9rem 0;
 }
@@ -31,4 +34,185 @@
 }
 .exhibit-embedded .paint-picker {
   justify-content: flex-end;
+}
+
+.inspection-loading,
+.exhibit-embedded .is-active .hero-caption {
+  display: none;
+}
+.exhibit-embedded #notice {
+  top: 0;
+  left: 0;
+}
+.inspection-open,
+.inspection-open body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#exhibit-inspection {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  border: 0;
+  background: var(--color-studio);
+  color: var(--color-ink);
+}
+#exhibit-inspection[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+.inspect-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px clamp(12px, 3vw, 32px);
+  border-bottom: 1px solid var(--color-rule);
+}
+#inspect-done {
+  min-height: 44px;
+  border-radius: 5px;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding-inline: 1rem;
+  font-weight: 600;
+}
+.exhibit-embedded .hero:has(.inspection-layout) {
+  padding: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+#instrument.inspection-layout {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  background: var(--color-studio);
+}
+.inspection-layout .stage {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  overflow: hidden;
+}
+.inspection-layout .poster {
+  width: 100%;
+  left: 0;
+}
+.inspection-layout .camera-tools {
+  right: 12px;
+  bottom: 10px;
+}
+.inspection-layout .hero-caption {
+  display: none;
+}
+.inspection-layout:not(.is-active) .hero-caption:not(:has([aria-busy='true'])),
+.inspection-layout:has([aria-busy='true']) .inspection-loading {
+  display: flex;
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  order: 0;
+}
+.inspection-layout .hero-caption :is(h1, .standfirst) {
+  display: none;
+}
+.inspection-layout .scene-error {
+  max-height: 25%;
+  overflow: auto;
+  margin: 0;
+  padding: 8px 12px;
+}
+.inspection-layout .paint-picker,
+.inspection-layout .model-tools {
+  width: auto;
+  margin: 0;
+  padding-inline: clamp(12px, 3vw, 24px);
+  background: var(--color-paper);
+}
+.inspection-layout .paint-picker {
+  justify-content: space-between;
+  padding-block: 6px;
+  border-top: 1px solid var(--color-rule);
+  flex-wrap: nowrap;
+}
+.inspection-layout .paint-picker select {
+  flex: 0 1 70%;
+  width: 70%;
+}
+.inspection-layout .inspection-body {
+  max-height: 34vh;
+  max-height: 34dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 12px;
+}
+.inspection-layout .model-tools summary {
+  padding-inline: 2px;
+}
+.inspection-layout .control-line {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+}
+.inspection-layout .part-picker select {
+  /* macOS WebKit's native menulist ignores min-height in its default appearance. */
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2rem;
+  height: 44px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='10' viewBox='0 0 14 10'%3E%3Cpath d='m2 2 5 5 5-5' fill='none' stroke='%23535a62' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  min-width: 0;
+  max-width: 100%;
+}
+.inspection-layout .control-line select {
+  width: 100%;
+}
+.inspection-layout .hinge-controls {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+.inspection-layout .modes button {
+  min-height: 44px;
+}
+@media (orientation: landscape) and (max-height: 36rem) {
+  #instrument.inspection-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(210px, 35%, 310px);
+    grid-template-rows: auto 1fr;
+  }
+  .inspection-layout .stage {
+    grid-area: 1 / 1 / -1 / 2;
+  }
+  .inspection-layout .paint-picker,
+  .inspection-layout .model-tools {
+    grid-column: 2;
+  }
+  .inspection-layout .model-tools {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  .inspection-layout .inspection-body {
+    max-height: none;
+    overflow: visible;
+  }
+  .inspection-layout .scene-error {
+    max-height: 100%;
+  }
 }

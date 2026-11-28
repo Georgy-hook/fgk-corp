@@ -26,13 +26,26 @@ export function createStudio({ onColor }) {
   const gallery = $("gallery");
   const mount = $("viewer-mount");
   const open = $("open-viewer");
-  let product, color, frame, mountPoint, cleanup;
+  const done = $("close-viewer");
+  const dialog = $("inspection-dialog");
+  const compact = matchMedia("(max-width: 900px), (pointer: coarse)");
+  let product, color, frame, mountPoint, cleanup, controller;
+  let returnY = 0;
   let revision = 0;
   let shots = [];
   let selected = 0;
 
   function clearScene() {
     revision += 1;
+    controller?.abort();
+    controller = null;
+    if (frame?.contentWindow) {
+      try {
+        frame.contentWindow.dispatchEvent(new Event("fgk:viewer-close"));
+      } catch {
+        // A custom exhibit can navigate away from its original same-origin URL.
+      }
+    }
     cleanup?.();
     cleanup = null;
     frame = null;
@@ -40,6 +53,12 @@ export function createStudio({ onColor }) {
     mount.replaceChildren();
     block.hidden = true;
     plate.hidden = false;
+    if (block.parentElement === dialog) {
+      dialog.close();
+      document.documentElement.classList.remove("inspecting");
+      gallery.before(block);
+      window.scrollTo(0, returnY);
+    }
   }
 
   function showShot(index) {
@@ -110,6 +129,18 @@ export function createStudio({ onColor }) {
         ({ file }) => asset(product, file) && /\.stl$/i.test(file),
       );
     open.hidden = !hasScene;
+    const ar = $("ar-link");
+    const usdz = asset(product, product.usdz);
+    const offerAr = Boolean(usdz && ar.relList.supports?.("ar"));
+    $("ar-entry").hidden = !offerAr;
+    ar.removeAttribute("href");
+    if (offerAr) {
+      ar.href = usdz;
+      ar.firstElementChild.src = shots[0]?.url ||
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%231747be' d='m12 2 9 5v10l-9 5-9-5V7zm0 10 9-5M3 7l9 5v10'/%3E%3C/svg%3E";
+      ar.setAttribute("aria-label", `${product.name}: посмотреть в своём пространстве`);
+      $("ar-finish").textContent = product.slug === "buran-vdnh" ? "USDZ · музейный окрас" : "USDZ · исходный окрас";
+    }
     $("scene-fallback").hidden = true;
     showShot(0);
   }
@@ -127,12 +158,23 @@ export function createStudio({ onColor }) {
     );
   }
 
-  async function start() {
+  async function start(fromHistory = false) {
     clearScene();
     const stamp = revision;
-    plate.hidden = true;
+    const isolated = compact.matches && typeof dialog.showModal === "function";
+    if (isolated) {
+      returnY = window.scrollY;
+      dialog.append(block);
+      document.documentElement.classList.add("inspecting");
+      if (!fromHistory && history.state?.fgkInspect !== product.slug)
+        history.pushState({ ...history.state, fgkInspect: product.slug }, "");
+    }
+    done.textContent = isolated ? "Готово" : "К ракурсам";
+    $("scene-title").textContent = product.name;
+    plate.hidden = !isolated;
     block.hidden = false;
-    $("close-viewer").focus({ preventScroll: true });
+    if (isolated) dialog.showModal();
+    done.focus({ preventScroll: true });
     [...gallery.children].forEach((link) =>
       link.setAttribute("aria-current", "false"),
     );
@@ -141,7 +183,9 @@ export function createStudio({ onColor }) {
       frame = document.createElement("iframe");
       frame.title = `Интерактивная модель: ${product.name}`;
       frame.allow = "fullscreen";
-      frame.src = viewerUrl;
+      const url = new URL(viewerUrl);
+      if (isolated && url.searchParams.has("embed")) url.searchParams.set("inspect", "1");
+      frame.src = url.href;
       frame.addEventListener(
         "load",
         () => {
@@ -157,6 +201,7 @@ export function createStudio({ onColor }) {
       mount.append(frame);
     } else {
       mountPoint = document.createElement("div");
+      controller = new AbortController();
       mountPoint.textContent = "Открываем модель…";
       mount.append(mountPoint);
       try {
@@ -164,9 +209,10 @@ export function createStudio({ onColor }) {
         if (stamp !== revision) return;
         const release = await mountViewer(mountPoint, {
           base: product.base.href,
+          signal: controller.signal,
           product: {
             ...product,
-            externalColors: true,
+            externalColors: !isolated,
             selectedColor: color?.hex,
           },
         });
@@ -180,10 +226,29 @@ export function createStudio({ onColor }) {
     }
   }
 
-  open.addEventListener("click", start);
-  $("close-viewer").addEventListener("click", () => {
+  function finish() {
     showShot(selected);
-    open.focus();
+    open.focus({ preventScroll: true });
+  }
+  function requestClose() {
+    if (dialog.open && history.state?.fgkInspect === product.slug) history.back();
+    finish();
+  }
+  open.addEventListener("click", () => start());
+  done.addEventListener("click", requestClose);
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    requestClose();
+  });
+  window.addEventListener("popstate", () => {
+    if (dialog.open && history.state?.fgkInspect !== product.slug) finish();
+    else if (!dialog.open && product && history.state?.fgkInspect === product.slug) start(true);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (!block.hidden && event.key === "Escape" && !event.defaultPrevented) {
+      event.preventDefault();
+      requestClose();
+    }
   });
   mount.addEventListener("fgk:viewer-color", (event) =>
     onColor(event.detail?.hex),
@@ -196,7 +261,9 @@ export function createStudio({ onColor }) {
     )
       return;
     if (event.data?.type === "fgk:viewer-color") onColor(event.data.hex);
+    if (event.data?.type === "fgk:request-close") requestClose();
     if (
+      !dialog.open &&
       event.data?.type === "fgk:viewer-size" &&
       Number.isFinite(event.data.height)
     )

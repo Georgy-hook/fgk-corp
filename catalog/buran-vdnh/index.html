@@ -2,7 +2,7 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f5f6f7" />
     <meta
       name="description"
@@ -88,6 +88,7 @@
               </button>
             </div>
           </div>
+          <p class="inspection-loading" role="status">Загружаем модель…</p>
           <div class="hero-caption">
             <h1 id="title">Буран</h1>
             <p class="standfirst">Испытательный макет БТС-001 с&nbsp;ВДНХ в&nbsp;масштабе 1:144.</p>
@@ -108,73 +109,76 @@
             Окрас
             <select id="paint" aria-label="Окрас модели"></select>
           </label>
-          <div id="model-tools" class="model-tools" hidden>
-            <div class="control-line">
-              <div class="inspection">
-                <div class="modes" role="group" aria-label="Положение деталей">
-                  <button type="button" id="assembled" aria-pressed="true">В сборе</button>
-                  <button type="button" id="exploded" aria-pressed="false">Разнести</button>
+          <details id="model-tools" class="model-tools" open hidden>
+            <summary>Ракурсы и механизмы</summary>
+            <div class="inspection-body">
+              <div class="control-line">
+                <div class="inspection">
+                  <div class="modes" role="group" aria-label="Положение деталей">
+                    <button type="button" id="assembled" aria-pressed="true">В сборе</button>
+                    <button type="button" id="exploded" aria-pressed="false">Разнести</button>
+                  </div>
+                  <button type="button" id="underside" class="view-switch" aria-pressed="false">
+                    Днище без опор
+                  </button>
                 </div>
-                <button type="button" id="underside" class="view-switch" aria-pressed="false">
-                  Днище без опор
-                </button>
+                <label class="part-picker" for="shot">Ракурс
+                  <select id="shot">
+                    <option value="">Перейти к виду…</option>
+                    <option value="v-home">Вся модель</option>
+                    <option value="v-cockpit">Нос и кабина</option>
+                    <option value="v-opened">Открытый отсек</option>
+                    <option value="v-rear">Кормовой щит</option>
+                    <option value="v-fin">Киль и тормоз</option>
+                    <option value="v-underside">Плитки днища</option>
+                    <option value="v-gear">Основная стойка</option>
+                  </select>
+                </label>
+                <label class="part-picker" for="parts"
+                  >Деталь<select id="parts">
+                    <option value="">Вся модель</option>
+                  </select></label
+                >
               </div>
-              <label class="part-picker" for="shot">Ракурс
-                <select id="shot">
-                  <option value="">Перейти к виду…</option>
-                  <option value="v-home">Вся модель</option>
-                  <option value="v-cockpit">Нос и кабина</option>
-                  <option value="v-opened">Открытый отсек</option>
-                  <option value="v-rear">Кормовой щит</option>
-                  <option value="v-fin">Киль и тормоз</option>
-                  <option value="v-underside">Плитки днища</option>
-                  <option value="v-gear">Основная стойка</option>
-                </select>
-              </label>
-              <label class="part-picker" for="parts"
-                >Деталь<select id="parts">
-                  <option value="">Вся модель</option>
-                </select></label
-              >
+              <fieldset class="mechanisms" id="mechanisms" hidden>
+                <legend>Раскрытие механизмов</legend>
+                <div class="hinge-controls">
+                  <div>
+                    <label for="bay-opening">Грузовой отсек</label>
+                    <span id="bay-reading" aria-hidden="true">Закрыт</span>
+                    <input id="bay-opening" type="range" min="0" max="100" value="0" />
+                  </div>
+                  <div>
+                    <label for="brake-upper-opening">Тормоз: верхняя пара</label>
+                    <span id="brake-upper-reading" aria-hidden="true">Открыта</span>
+                    <input id="brake-upper-opening" type="range" min="0" max="100" value="100" />
+                  </div>
+                  <div>
+                    <label for="brake-lower-opening">Тормоз: нижняя пара</label>
+                    <span id="brake-lower-reading" aria-hidden="true">Открыта</span>
+                    <input id="brake-lower-opening" type="range" min="0" max="100" value="100" />
+                  </div>
+                </div>
+              </fieldset>
+              <div id="part-card" class="part-card" hidden>
+                <div>
+                  <h2 id="part-name"></h2>
+                  <p id="part-note"></p>
+                  <p class="part-size" id="part-size"></p>
+                </div>
+                <div class="part-actions">
+                  <button id="isolate" class="secondary" type="button" aria-pressed="false">
+                    Показать отдельно</button
+                  ><a class="text-link" id="part-download" download>Скачать STL</a>
+                </div>
+              </div>
+              <p class="gesture" id="gesture">
+                <span class="pointer-copy">Вращайте мышью, приближайте колёсиком.</span
+                ><span class="touch-copy">Вращайте пальцем, приближайте двумя.</span>
+                Коснитесь детали или выберите её в списке.
+              </p>
             </div>
-            <fieldset class="mechanisms" id="mechanisms" hidden>
-              <legend>Раскрытие механизмов</legend>
-              <div class="hinge-controls">
-                <div>
-                  <label for="bay-opening">Грузовой отсек</label>
-                  <span id="bay-reading" aria-hidden="true">Закрыт</span>
-                  <input id="bay-opening" type="range" min="0" max="100" value="0" />
-                </div>
-                <div>
-                  <label for="brake-upper-opening">Тормоз: верхняя пара</label>
-                  <span id="brake-upper-reading" aria-hidden="true">Открыта</span>
-                  <input id="brake-upper-opening" type="range" min="0" max="100" value="100" />
-                </div>
-                <div>
-                  <label for="brake-lower-opening">Тормоз: нижняя пара</label>
-                  <span id="brake-lower-reading" aria-hidden="true">Открыта</span>
-                  <input id="brake-lower-opening" type="range" min="0" max="100" value="100" />
-                </div>
-              </div>
-            </fieldset>
-            <div id="part-card" class="part-card" hidden>
-              <div>
-                <h2 id="part-name"></h2>
-                <p id="part-note"></p>
-                <p class="part-size" id="part-size"></p>
-              </div>
-              <div class="part-actions">
-                <button id="isolate" class="secondary" type="button" aria-pressed="false">
-                  Показать отдельно</button
-                ><a class="text-link" id="part-download" download>Скачать STL</a>
-              </div>
-            </div>
-            <p class="gesture" id="gesture">
-              <span class="pointer-copy">Вращайте мышью, приближайте колёсиком.</span
-              ><span class="touch-copy">Вращайте пальцем, приближайте двумя.</span>
-              Коснитесь детали или выберите её в списке.
-            </p>
-          </div>
+          </details>
         </div>
       </section>
       <section id="details" class="shell detail-section" aria-labelledby="detail-title">
@@ -263,7 +267,7 @@
               aria-describedby="ar-description"
               ><img src="assets/hero.webp" alt="" width="64" height="32"
             /></a>
-            <span id="ar-description">Посмотреть в своём пространстве</span>
+            <span id="ar-description">В своём пространстве · музейный окрас</span>
           </div>
           <a id="usdz-download" class="quick-option" download hidden>Скачать USDZ</a>
           <div class="spec-grid">
@@ -411,5 +415,11 @@
       <span>Независимая реконструкция. Не сайт ВДНХ.</span><a href="#top">Наверх</a>
     </footer>
     <div class="sr-only" id="notice" role="status"></div>
+    <dialog id="exhibit-inspection" aria-labelledby="inspect-name">
+      <div class="inspect-heading">
+        <strong id="inspect-name">Буран БТС-001</strong>
+        <button id="inspect-done" type="button">Готово</button>
+      </div>
+    </dialog>
   </body>
 </html>

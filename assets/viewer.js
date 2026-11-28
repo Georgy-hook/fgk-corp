@@ -1,5 +1,5 @@
 import * as THREE from '../vendor/three/build/three.module.js';
-import { OrbitControls } from '../vendor/three/examples/jsm/controls/OrbitControls.js';
+import { createTurntable } from './turntable.js';
 import { disposeModel, loadModel, loadPart, paintFinish, printableParts } from './model-media.js';
 
 function makeView(doc, product) {
@@ -43,7 +43,8 @@ function makeView(doc, product) {
 const colorPattern = /^#[\da-f]{6}$/i;
 const initialDirection = new THREE.Vector3(1.55, 0.95, 1.65).normalize();
 
-export async function mountViewer(container, { base, product }) {
+export async function mountViewer(container, { base, product, signal }) {
+  if (signal?.aborted) return () => {};
   const view = makeView(container.ownerDocument, product);
   container.replaceChildren(view.root);
   const parts = printableParts(product);
@@ -61,17 +62,47 @@ export async function mountViewer(container, { base, product }) {
   let partIndex = -1;
   let requestId = 0;
   let disposed = false;
+  let inMotion = false;
+  let sized = '';
+  let width = 0;
+  let height = 0;
+  let reading = new AbortController();
+  const doc = view.canvas.ownerDocument;
   let color = product.selectedColor || product.colors?.[0]?.hex;
 
   function render() {
-    if (disposed || frame || !renderer) return;
-    frame = requestAnimationFrame(() => {
+    if (disposed || frame || !renderer || doc.hidden) return;
+    frame = requestAnimationFrame((now) => {
       frame = 0;
-      if (!disposed) renderer.render(scene, camera);
+      if (disposed || doc.hidden) return;
+      const coasting = orbit?.step(now);
+      renderer.render(scene, camera);
+      if (coasting) render();
     });
   }
 
+  function resolution(active) {
+    inMotion = active;
+    if (!width || !height || !renderer || disposed) return;
+    const dpr = Math.min(devicePixelRatio || 1, active ? 1.4 : 2,
+      Math.sqrt((active ? 700000 : 1600000) / (width * height)));
+    const next = `${width}:${height}:${dpr}`;
+    if (sized === next) return;
+    sized = next;
+    renderer.setDrawingBufferSize(width, height, dpr);
+    render();
+  }
+
+  function visibility() {
+    if (doc.hidden) {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      orbit?.stop();
+    } else render();
+  }
+
   function reset() {
+    orbit.stop();
     orbit.target.copy(center);
     camera.position.copy(center).addScaledVector(initialDirection, fit);
     orbit.update();
@@ -79,7 +110,8 @@ export async function mountViewer(container, { base, product }) {
   }
 
   function resize() {
-    const { width, height } = view.stage.getBoundingClientRect();
+    width = view.stage.clientWidth;
+    height = view.stage.clientHeight;
     if (!width || !height || !radius || !renderer) return;
     const zoom = fit ? camera.position.distanceTo(orbit.target) / fit : 1;
     camera.aspect = width / height;
@@ -94,7 +126,7 @@ export async function mountViewer(container, { base, product }) {
     const direction = camera.position.clone().sub(orbit.target);
     if (!direction.lengthSq()) direction.copy(initialDirection);
     camera.position.copy(orbit.target).addScaledVector(direction.normalize(), fit * zoom);
-    renderer.setSize(width, height, false);
+    resolution(inMotion);
     orbit.update();
     render();
   }
@@ -130,11 +162,12 @@ export async function mountViewer(container, { base, product }) {
     reset();
     view.status.textContent = index >= 0 && parts.length > 1
       ? `Деталь ${index + 1} из ${parts.length}: ${parts[index].label}`
-      : 'Перетащите, чтобы повернуть';
+      : 'Поворот — одним пальцем, масштаб — двумя';
     view.status.removeAttribute('data-error');
   }
 
   function zoom(factor) {
+    orbit.stop();
     const direction = camera.position.clone().sub(orbit.target);
     const distance = THREE.MathUtils.clamp(direction.length() * factor, orbit.minDistance, orbit.maxDistance);
     camera.position.copy(orbit.target).addScaledVector(direction.normalize(), distance);
@@ -148,6 +181,7 @@ export async function mountViewer(container, { base, product }) {
     else if (event.key === '+' || event.key === '=') zoom(0.80);
     else if (event.key === '-') zoom(1.25);
     else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+      orbit.stop();
       const sphere = new THREE.Spherical().setFromVector3(camera.position.clone().sub(orbit.target));
       const step = Math.PI / 18;
       if (event.key === 'ArrowLeft') sphere.theta -= step;
@@ -165,9 +199,11 @@ export async function mountViewer(container, { base, product }) {
   async function switchPart() {
     const index = Number(view.part.value);
     const id = ++requestId;
+    reading.abort();
+    reading = new AbortController();
     view.status.textContent = 'Загружаем деталь…';
     try {
-      const object = await loadPart(base, parts[index].file, color);
+      const object = await loadPart(base, parts[index].file, color, reading.signal);
       if (disposed || !container.isConnected || id !== requestId) {
         disposeModel(object);
         return;
@@ -187,6 +223,9 @@ export async function mountViewer(container, { base, product }) {
     if (disposed) return;
     disposed = true;
     requestId++;
+    reading.abort();
+    signal?.removeEventListener('abort', cleanup);
+    doc.removeEventListener('visibilitychange', visibility);
     cancelAnimationFrame(frame);
     observer?.disconnect();
     window.removeEventListener('resize', resize);
@@ -196,12 +235,14 @@ export async function mountViewer(container, { base, product }) {
     orbit?.dispose();
     disposeModel(model);
     renderer?.dispose();
+    renderer?.forceContextLoss();
     view.root.remove();
   }
 
+  signal?.addEventListener('abort', cleanup, { once: true });
+  doc.addEventListener('visibilitychange', visibility);
   try {
     renderer = new THREE.WebGLRenderer({ canvas: view.canvas, alpha: true, antialias: true });
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     scene.add(new THREE.HemisphereLight(0xf0f5ff, 0x8b9399, 1.6));
@@ -210,11 +251,9 @@ export async function mountViewer(container, { base, product }) {
     key.position.set(4, 6, 3);
     rim.position.set(-4, 2, -3);
     scene.add(key, rim);
-    orbit = new OrbitControls(camera, view.canvas);
-    orbit.enablePan = false;
-    orbit.addEventListener('change', render);
-    const { object, part } = await loadModel(base, product, parts);
-    if (!container.isConnected) {
+    orbit = createTurntable(THREE, camera, view.canvas, { invalidate: render, onMotion: resolution });
+    const { object, part } = await loadModel(base, product, parts, reading.signal);
+    if (disposed || !container.isConnected) {
       disposeModel(object);
       cleanup();
       return cleanup;
@@ -249,6 +288,7 @@ export async function mountViewer(container, { base, product }) {
       window.addEventListener('resize', resize);
     }
   } catch {
+    if (disposed) return cleanup;
     view.canvas.hidden = true;
     view.status.dataset.error = 'true';
     view.status.textContent = renderer

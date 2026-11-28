@@ -124,7 +124,7 @@ def check_product(slug, folder):
         require(text(entry, "name") and text(entry, "hex") and HEX.fullmatch(entry["hex"]), f"{slug}: invalid paint")
     for entry in product.get("details", []):
         require(text(entry, "label") and text(entry, "value"), f"{slug}: incomplete specification")
-    for field, ext in (("glb", ".glb"), ("viewer", ".html"), ("exhibit", ".html")):
+    for field, ext in (("glb", ".glb"), ("usdz", ".usdz"), ("viewer", ".html"), ("exhibit", ".html")):
         if product.get(field):
             asset(folder, product[field], {ext}, allow_query=field == "viewer")
     direct_stl = any(entry["file"].lower().endswith(".stl") for entry in downloads)

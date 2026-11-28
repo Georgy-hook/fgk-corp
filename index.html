@@ -2,7 +2,7 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f5f6f8" />
     <meta
       name="description"
@@ -104,8 +104,8 @@
             </figure>
             <div id="scene-block" hidden>
               <div class="scene-heading">
-                <span>Интерактивная модель</span
-                ><button id="close-viewer" type="button">К ракурсам</button>
+                <strong id="scene-title">Интерактивная модель</strong>
+                <button id="close-viewer" type="button">К ракурсам</button>
               </div>
               <div id="viewer-mount"></div>
             </div>
@@ -153,6 +153,10 @@
             <a class="button button-accent" id="order-selected" href="#order"
               >Оставить заявку</a
             >
+            <div id="ar-entry" class="ar-entry" hidden>
+              <a id="ar-link" rel="ar" aria-describedby="ar-finish"><img alt="" width="60" height="44" /></a>
+              <span>В своём пространстве<small id="ar-finish"></small></span>
+            </div>
           </div>
         </div>
         <div class="passport" id="passport">
@@ -247,6 +251,7 @@
         </div>
       </section>
     </main>
+    <dialog id="inspection-dialog" aria-labelledby="scene-title"></dialog>
     <footer class="site-footer">
       <div class="shell footer-inner">
         <a class="brand" href="#top">FGK Corp</a><a href="#top">Наверх ↑</a

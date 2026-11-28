@@ -4,7 +4,7 @@
 
   const byId = (id) => document.getElementById(id);
   const select = byId('parts');
-  const canvas = byId('model');
+  let canvas = byId('model');
   const toggle = byId('open-model');
   const caption = toggle.querySelector('span');
   const controls = byId('model-tools');
@@ -21,8 +21,8 @@
   ];
   const format = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
   let viewer = null;
-  let loading = false;
-  let lost = false;
+  let request = null;
+  let savedView = null;
 
   function measure(v) {
     return Array.isArray(v) && v.length === 3 && v.every(Number.isFinite)
@@ -254,54 +254,88 @@
     });
   }
 
-  toggle.addEventListener('click', async () => {
-    if (loading || lost) return;
+  function closeScene() {
+    if (!request && !viewer) return;
+    request?.abort();
+    request = null;
     if (viewer) {
-      showScene(canvas.hidden);
+      savedView = viewer.saveView();
+      viewer.dispose();
+      viewer = null;
+    }
+    // A deliberately lost WebGL context cannot be reopened on the same canvas.
+    // The replacement retains the accessibility/size attributes, not old listeners or buffers.
+    if (!canvas.hidden) {
+      const next = canvas.cloneNode(false);
+      next.removeAttribute('width');
+      next.removeAttribute('height');
+      next.style.removeProperty('visibility');
+      canvas.replaceWith(next);
+      canvas = next;
+    }
+    showScene(false);
+    toggle.removeAttribute('aria-busy');
+  }
+
+  window.addEventListener('pagehide', closeScene);
+  window.addEventListener('fgk:viewer-close', closeScene);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && request) closeScene();
+  });
+  toggle.addEventListener('click', async () => {
+    if (request || viewer) {
+      closeScene();
       return;
     }
-    loading = true;
-    toggle.disabled = true;
+    const operation = new AbortController();
+    request = operation;
     toggle.setAttribute('aria-busy', 'true');
-    caption.textContent = 'Открываем 3D…';
+    caption.textContent = 'Отменить загрузку 3D';
     error.hidden = true;
     try {
-      // These scripts only declare globals: dependencies are used after all four finish.
-      await Promise.all(
-        ['vendor/three-atlas.js', 'assets/model-data.js', 'studio.js', 'viewport.js'].map(
-          loadScript,
-        ),
-      );
+      const [prepared] = await Promise.all([
+        loadScript('viewport.js').then(() => window.BuranViewport.prepare(operation.signal)),
+        ...['vendor/three-atlas.js', 'assets/model-data.js', 'studio.js'].map(loadScript),
+      ]);
+      operation.signal.throwIfAborted();
       populate(window.BURAN);
       canvas.hidden = false;
       // Keep the poster on top while creating the WebGL context at the final canvas size.
       canvas.style.visibility = 'hidden';
-      viewer = await window.BuranViewport.create(canvas, window.BURAN, {
+      const next = await window.BuranViewport.create(canvas, window.BURAN, {
         pick: (id) => choose(id, 'scene'),
         reset,
         error(message) {
-          lost = true;
-          toggle.disabled = true;
+          closeScene();
           sceneError(message);
         },
-      });
+      }, operation.signal, prepared);
+      if (operation.signal.aborted) {
+        next.dispose();
+        return;
+      }
+      viewer = next;
       for (const id of ['isolate', 'assembled', 'exploded', 'underside', 'shot']) byId(id).disabled = false;
       enableMechanisms();
       byId('gesture').hidden = false;
-      viewer.select(state.selected, state.isolated);
+      if (savedView) viewer.restoreView(savedView);
+      else viewer.select(state.selected, state.isolated);
       render();
       showScene(true);
       window.dispatchEvent(new Event('buran:viewer-ready'));
     } catch (reason) {
+      if (operation.signal.aborted) return;
+      closeScene();
       sceneError(
         reason.message || 'Не удалось открыть 3D. Файлы для печати доступны в мастерской.',
       );
     } finally {
-      canvas.style.removeProperty('visibility');
-      if (!canvas.hidden) canvas.focus({ preventScroll: true });
-      toggle.removeAttribute('aria-busy');
-      toggle.disabled = lost;
-      loading = false;
+      if (request === operation) {
+        request = null;
+        canvas.style.removeProperty('visibility');
+        if (!canvas.hidden) canvas.focus({ preventScroll: true });
+        toggle.removeAttribute('aria-busy');
+      }
     }
   });
 

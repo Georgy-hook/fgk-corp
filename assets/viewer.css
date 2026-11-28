@@ -114,3 +114,20 @@
     aspect-ratio: 1.2;
   }
 }
+
+#inspection-dialog #viewer-mount > div,
+#inspection-dialog .fgk-viewer {
+  height: 100%;
+}
+#inspection-dialog .fgk-viewer {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+#inspection-dialog .fgk-viewer__stage {
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+#inspection-dialog .fgk-viewer__toolbar {
+  max-height: 38dvh;
+  overflow: auto;
+}

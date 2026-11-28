@@ -22,9 +22,17 @@ function productLoader(base) {
   return { resolve, manager };
 }
 
-export async function loadPart(base, file, color) {
+async function readBuffer(url, signal) {
+  const response = await fetch(url, { signal });
+  if (!response.ok) throw new Error('Файл модели недоступен.');
+  return response.arrayBuffer();
+}
+
+export async function loadPart(base, file, color, signal) {
   const { resolve, manager } = productLoader(base);
-  const geometry = await new STLLoader(manager).loadAsync(resolve(file));
+  const buffer = await readBuffer(resolve(file), signal);
+  signal?.throwIfAborted();
+  const geometry = new STLLoader(manager).parse(buffer);
   if (!geometry.getAttribute('normal')) geometry.computeVertexNormals();
   const material = new THREE.MeshStandardMaterial({ color: color || '#b1bdc4', metalness: 0.10, roughness: 0.60 });
   const mesh = new THREE.Mesh(geometry, material);
@@ -32,18 +40,25 @@ export async function loadPart(base, file, color) {
   return mesh;
 }
 
-export async function loadModel(base, product, parts) {
+export async function loadModel(base, product, parts, signal) {
   if (product.glb) {
     try {
       const { resolve, manager } = productLoader(base);
-      const gltf = await new GLTFLoader(manager).loadAsync(resolve(product.glb));
+      const url = resolve(product.glb);
+      const bytes = await readBuffer(url, signal);
+      signal?.throwIfAborted();
+      const gltf = await new GLTFLoader(manager).parseAsync(bytes, new URL('.', url).href);
+      if (signal?.aborted) {
+        disposeModel(gltf.scene);
+        signal.throwIfAborted();
+      }
       return { object: gltf.scene, part: -1 };
     } catch (error) {
-      if (!parts.length) throw error;
+      if (signal?.aborted || !parts.length) throw error;
     }
   }
   if (!parts.length) throw new Error('Для интерактивного просмотра нужен файл GLB или STL.');
-  const object = await loadPart(base, parts[0].file, product.colors?.[0]?.hex);
+  const object = await loadPart(base, parts[0].file, product.colors?.[0]?.hex, signal);
   return { object, part: 0 };
 }
 

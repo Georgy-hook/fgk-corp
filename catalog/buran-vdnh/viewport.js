@@ -2,11 +2,11 @@
 (() => {
   'use strict';
 
-  async function parse(T) {
+  async function geometry(signal) {
     if (typeof DecompressionStream !== 'function') {
       throw new Error('Для 3D-осмотра обновите браузер.');
     }
-    const response = await fetch('assets/buran.glb.gz');
+    const response = await fetch('assets/buran.glb.gz', { signal });
     if (!response.ok || !response.body) throw new Error('Не удалось загрузить геометрию.');
     const stream = response.body.pipeThrough(new DecompressionStream('gzip'));
     const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
@@ -19,12 +19,22 @@
     ) {
       throw new Error('Файл геометрии повреждён.');
     }
+    return bytes.buffer;
+  }
+
+  function prepare(signal) {
+    // The large file can stream and inflate while the classic Three bundle is still loading.
+    signal?.throwIfAborted();
+    return Promise.all([geometry(signal), import('../../assets/turntable.js'), import('./surface.js')]);
+  }
+
+  function parse(T, bytes) {
     const manager = new T.LoadingManager();
     manager.setURLModifier((url) => {
       if (/^(data|blob):/i.test(url)) return url;
       throw new Error('Модель содержит внешнюю зависимость.');
     });
-    return new T.GLTFLoader(manager).parseAsync(bytes.buffer, '');
+    return new T.GLTFLoader(manager).parseAsync(bytes, '');
   }
 
   function register(T, scene, gltf, catalog) {
@@ -66,79 +76,52 @@
       });
       if (!part.surfaces.length) throw new Error('В одной из деталей отсутствуют поверхности.');
       part.bounds = new T.Box3().setFromObject(part.node);
-      part.points = window.BuranStudio.supportPoints(T, part.surfaces);
+      // The packed exhibit carries the original framing cloud, in assembled world metres.
+      const cloud = part.node.userData.buranSupportPoints;
+      part.points = Array.isArray(cloud) && cloud.length === 26 &&
+          cloud.every((p) => Array.isArray(p) && p.length === 3 && p.every(Number.isFinite))
+        ? cloud.map((p) => new T.Vector3(...p))
+        : window.BuranStudio.supportPoints(T, part.surfaces);
       part.hinge = window.BuranStudio.hingeFor(T, part, part.articulation);
     }
     return { parts, owners };
   }
 
-  function bindPicking(canvas, pick, settle) {
-    const contacts = new Set();
-    let tap = null;
-    function move(e) {
-      if (tap?.id === e.pointerId && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 5)
-        tap = null;
-    }
-    canvas.addEventListener(
-      'pointerdown',
-      (e) => {
-        settle();
-        contacts.add(e.pointerId);
-        tap =
-          contacts.size === 1 && e.isPrimary && e.button === 0
-            ? { id: e.pointerId, x: e.clientX, y: e.clientY }
-            : null;
-      },
-      true,
-    );
-    canvas.addEventListener('pointermove', move, true);
-    canvas.addEventListener(
-      'pointerup',
-      (e) => {
-        move(e);
-        const hit = tap?.id === e.pointerId;
-        contacts.delete(e.pointerId);
-        tap = null;
-        if (hit) pick(e);
-      },
-      true,
-    );
-    for (const name of ['pointercancel', 'lostpointercapture']) {
-      canvas.addEventListener(
-        name,
-        (e) => {
-          contacts.delete(e.pointerId);
-          tap = null;
-        },
-        true,
-      );
-    }
-    canvas.addEventListener('wheel', settle, { capture: true, passive: true });
-  }
-
-  async function create(canvas, data, events) {
+  async function create(canvas, data, events, signal, prepared) {
     const T = window.AtlasThree;
     if (!T) throw new Error('Не найдена локальная библиотека 3D.');
-    const gltf = await parse(T);
+    const [bytes, { createTurntable }, { createSurface }] = prepared || await prepare(signal);
+    signal?.throwIfAborted();
+    const gltf = await parse(T, bytes);
+    signal?.throwIfAborted();
     const scene = new T.Scene();
     const { parts, owners } = register(T, scene, gltf, data.parts);
+    const surface = createSurface(T, canvas, scene);
+    try {
+      return build(T, canvas, events, scene, parts, owners, surface, createTurntable);
+    } catch (reason) {
+      surface.dispose();
+      throw reason;
+    }
+  }
+
+  function build(T, canvas, events, scene, parts, owners, surface, createTurntable) {
     const paint = new Map();
+    const copies = new Map();
     for (const [id, part] of parts) {
       if (['Plinth', 'GearFront', 'BogiePort', 'BogieStarboard'].includes(id)) continue;
       for (const mesh of part.surfaces) {
         const material = mesh.material;
         if (!material.color || !/^#[d-f][0-9a-f]{5}$/i.test(material.name)) continue;
-        const copy = material.clone();
-        mesh.material = copy;
-        paint.set(copy, material.color.clone());
+        if (!copies.has(material)) {
+          const copy = material.clone();
+          copies.set(material, copy);
+          paint.set(copy, material.color.clone());
+        }
+        mesh.material = copies.get(material);
       }
     }
-    let renderer;
-    try {
-      renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    } catch {
-      throw new Error('Для осмотра нужен WebGL 2. Детали и файлы доступны ниже.');
-    }
+    const { renderer, dirty, resize } = surface;
     renderer.setClearColor(0, 0);
     renderer.outputColorSpace = T.SRGBColorSpace;
     renderer.toneMapping = T.NeutralToneMapping;
@@ -161,12 +144,10 @@
     const foot = Array.from(parts.values()).reduce((a, b) =>
       a.bounds.min.y < b.bounds.min.y ? a : b,
     );
-    const orbit = new T.OrbitControls(camera, canvas);
-    orbit.enablePan = false;
-    orbit.enableDamping = false;
-    orbit.rotateSpeed = 0.7;
-    orbit.minPolarAngle = 0.015;
-    orbit.maxPolarAngle = Math.PI - 0.015;
+    const orbit = createTurntable(T, camera, canvas, {
+      invalidate: dirty, onStart: settle, onTap: pick, onMotion: surface.motion,
+    });
+    surface.signal.addEventListener('abort', orbit.dispose, { once: true });
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const ray = new T.Raycaster();
     const pointer = new T.Vector2();
@@ -181,10 +162,6 @@
     let amount = 0;
     let destination = 0;
     let anim = null;
-    let pending = 0;
-    let width = 0;
-    let height = 0;
-    let lost = false;
 
     const currentEye = () => camera.position.clone().sub(orbit.target).normalize();
     const visible = (part) => isolated ? part.id === isolated : !underside || !supports.has(part.id);
@@ -239,9 +216,8 @@
     function settle() {
       if (anim) snap(anim.eye);
     }
-    function draw(now) {
-      pending = 0;
-      if (lost || !width || !height) return;
+    function step(now) {
+      const coast = orbit.step(now);
       if (anim) {
         const t = Math.min(1, (now - anim.start) / 360);
         const ease = t * t * (3 - 2 * t);
@@ -250,14 +226,9 @@
         placeCamera(center, anim.eye, anim.dist + (anim.fit.distance - anim.dist) * ease);
         renderer.shadowMap.needsUpdate = true;
         if (t === 1) snap(anim.eye);
-        else dirty();
       }
-      renderer.render(scene, camera);
+      return coast || !!anim;
     }
-    function dirty() {
-      if (!pending && !lost) pending = requestAnimationFrame(draw);
-    }
-    orbit.addEventListener('change', dirty);
 
     function pose(control, fraction) {
       opening[control] = fraction;
@@ -269,6 +240,7 @@
     }
     function setOpening(control, fraction) {
       if (!Object.hasOwn(opening, control) || !Number.isFinite(fraction)) return false;
+      orbit.stop();
       settle();
       const eye = currentEye();
       const before = frame(eye, amount);
@@ -285,6 +257,7 @@
       return true;
     }
     function inspectBottom(active) {
+      orbit.stop();
       detail = null;
       isolated = null;
       select(null, false);
@@ -294,6 +267,7 @@
     }
 
     function explode(value) {
+      orbit.stop();
       detail = null;
       underside = false;
       destination = value ? 1 : 0;
@@ -334,6 +308,7 @@
       selected = parts.has(id) ? id : null;
       const next = solo ? selected : null;
       if (next !== isolated) {
+        orbit.stop();
         detail = null;
         const eye = currentEye();
         if (!isolated) assemblyEye = eye;
@@ -363,14 +338,11 @@
       }
       dirty();
     }
-    function renderNow() {
-      if (pending) cancelAnimationFrame(pending);
-      draw(performance.now());
-    }
     function setView(name, opts = {}) {
       const preset = views.get(name);
       if (!['home', 'underside', 'plinth-under'].includes(name) && !preset) return false;
       if (name === 'plinth-under' && !parts.has('Plinth')) return false;
+      orbit.stop();
       resize();
       destination = 0;
       anim = null;
@@ -383,7 +355,7 @@
       detail = preset || null;
       if (name === 'plinth-under') select('Plinth', true);
       else snap(preset ? new T.Vector3(...preset.eye).normalize() : underside ? below : home);
-      if (opts?.instant) renderNow();
+      if (opts?.instant) surface.renderNow();
       return true;
     }
     function pick(event) {
@@ -403,6 +375,7 @@
       if (hit) events.pick(owners.get(hit.object));
     }
     function zoom(factor) {
+      orbit.stop();
       settle();
       const distance = camera.position.distanceTo(orbit.target) / factor;
       placeCamera(
@@ -412,21 +385,6 @@
       );
       dirty();
     }
-    function resize() {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      if (!w || !h || (w === width && h === height)) return;
-      const first = !width;
-      width = w;
-      height = h;
-      renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(2500000 / (w * h))),
-      );
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      snap(first ? home : currentEye());
-    }
-    bindPicking(canvas, pick, settle);
     canvas.addEventListener('keydown', (event) => {
       if (event.altKey || event.metaKey || event.ctrlKey) return;
       const key = event.key;
@@ -434,6 +392,7 @@
       else if (key === '+' || key === '=') zoom(1.2);
       else if (key === '-') zoom(1 / 1.2);
       else if (key.startsWith('Arrow')) {
+        orbit.stop();
         settle();
         const theta =
           orbit.getAzimuthalAngle() +
@@ -447,16 +406,37 @@
         );
         const eye = new T.Vector3().setFromSphericalCoords(1, phi, theta);
         placeCamera(orbit.target, eye, camera.position.distanceTo(orbit.target));
+        dirty();
       } else return;
       event.preventDefault();
+    }, { signal: surface.signal });
+    reduced.addEventListener('change', settle, { signal: surface.signal });
+    surface.observe({
+      step,
+      render() {
+        renderer.render(scene, camera);
+      },
+      suspend() {
+        orbit.stop();
+        settle();
+      },
+      resize(w, h, first) {
+        orbit.stop();
+        if (!first) settle();
+        const eye = first ? home : currentEye();
+        const oldDistance = first ? 1 : frame(eye, amount).distance;
+        camera.aspect = w / h;
+        if (first) snap(eye);
+        else {
+          // Keep the same subject and relative zoom through phone rotation / browser-bar resize.
+          const fit = frame(eye, amount);
+          const zoom = camera.position.distanceTo(orbit.target) / oldDistance;
+          setRange(fit);
+          placeCamera(fit.center, eye, fit.distance * zoom);
+        }
+      },
+      error: events.error,
     });
-    canvas.addEventListener('webglcontextlost', (event) => {
-      event.preventDefault();
-      lost = true;
-      events.error('Контекст 3D потерян. Перезагрузите страницу для повторного осмотра.');
-    });
-    new ResizeObserver(resize).observe(canvas);
-    resize();
     return {
       select,
       explode,
@@ -467,10 +447,34 @@
       isSupport: (id) => supports.has(id),
       setView,
       snapshot() {
-        resize();
-        if (lost || !width || !height) throw new Error('Снимок недоступен до отрисовки модели.');
-        renderNow();
+        if (!surface.renderNow()) throw new Error('Снимок недоступен до отрисовки модели.');
         return canvas.toDataURL('image/png');
+      },
+      saveView() {
+        settle();
+        return {
+          selected, isolated, underside, destination, opening: { ...opening },
+          detail: [...views.keys()].find((id) => views.get(id) === detail),
+          assemblyEye: assemblyEye?.toArray(), eye: currentEye().toArray(),
+          target: orbit.target.toArray(), distance: camera.position.distanceTo(orbit.target),
+          aspect: camera.aspect,
+        };
+      },
+      restoreView(saved) {
+        for (const [id, value] of Object.entries(saved.opening)) pose(id, value);
+        underside = saved.underside;
+        destination = saved.destination;
+        select(saved.selected, !!saved.isolated);
+        detail = views.get(saved.detail) || null;
+        assemblyEye = saved.assemblyEye ? new T.Vector3(...saved.assemblyEye) : null;
+        const eye = new T.Vector3(...saved.eye);
+        snap(eye);
+        if (Math.abs(camera.aspect - saved.aspect) < 0.01) {
+          placeCamera(new T.Vector3(...saved.target), eye, saved.distance);
+        }
+      },
+      dispose() {
+        surface.dispose([...copies.keys(), ...paint.keys(), ...highlights.values()]);
       },
       reset() {
         setView('home');
@@ -478,5 +482,5 @@
     };
   }
 
-  window.BuranViewport = Object.freeze({ create });
+  window.BuranViewport = Object.freeze({ prepare, create });
 })();

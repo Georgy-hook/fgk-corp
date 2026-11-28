@@ -5,6 +5,7 @@
   "image": "assets/hero.webp",
   "viewer": "index.html?embed=1",
   "exhibit": "index.html",
+  "usdz": "files/Buran.usdz",
   "stl": [
     { "file": "files/Buran-STL.zip", "label": "Комплект STL" }
   ],
