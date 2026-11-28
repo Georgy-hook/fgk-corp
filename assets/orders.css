@@ -1,96 +1,159 @@
 .order-form {
   display: grid;
-  gap: 0.9rem;
-  margin-block-start: 1.2rem;
+  gap: 1rem;
+  min-width: 0;
+  margin-block-start: 1.25rem;
+  color: var(--ink, #242931);
 }
 
-.order-fields {
+.order-form .order-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 0.85rem 0.75rem;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
 }
 
 .order-fields label {
-  display: block;
+  display: grid;
+  align-content: end;
+  gap: 0.35rem;
+  min-width: 0;
   color: inherit;
+  font-size: 0.875rem;
   font-weight: 600;
-  font-size: 0.92rem;
+  line-height: 1.3;
 }
 
-.order-wide {
-  grid-column: 1 / -1;
-}
-
-.order-fields :is(input, select, textarea) {
-  display: block;
+.order-form :is(input:not([tabindex="-1"]), select, textarea) {
+  box-sizing: border-box;
   width: 100%;
-  border: 1px solid #65737e;
-  border-radius: 0.45rem;
-  background: #111920;
-  color: #f5f6f7;
-  color-scheme: dark;
-  min-height: 2.8rem;
-  padding: 0.55rem 0.7rem;
+  min-width: 0;
+  height: 2.9rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line, #a8b1be);
+  border-color: color-mix(in srgb, var(--line, #cbd2d8) 35%, var(--muted, #536171));
+  border-radius: 0.5rem;
+  background-color: var(--paper, #f5f6f8);
+  color: var(--ink, #242931);
+  color-scheme: light;
   font: inherit;
   font-size: 1rem;
   font-weight: 400;
-  margin-block-start: 0.3rem;
+  line-height: 1.3;
 }
 
-.order-fields textarea {
+.order-form select {
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.order-more {
+  grid-column: 1 / -1;
+}
+
+.order-more summary {
+  width: fit-content;
+  padding-block: 0.45rem;
+  color: var(--accent, #214dc7);
+  cursor: pointer;
+}
+
+.order-more label {
+  margin-block-start: 0.7rem;
+}
+
+.order-more textarea {
+  height: auto;
+  min-height: 5rem;
   resize: vertical;
 }
 
-.order-fields :is(input, select, textarea):focus-visible {
-  outline: 2px solid #e7a88e;
-  outline-offset: 2px;
+.order-form input::placeholder {
+  color: var(--muted, #536171);
+  opacity: 1;
 }
 
-.order-optional {
-  font-weight: 400;
-  color: #b8c2c9;
+.order-finish {
+  position: relative;
 }
 
-.order-color,
-.order-status,
-.order-privacy {
-  font-size: 0.87rem;
+.order-swatch:not([hidden]) {
+  position: absolute;
+  inset-inline-start: 0.7rem;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 1px solid rgb(35 42 51 / 40%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.order-form .order-swatch:not([hidden]) + select {
+  padding-inline-start: 2rem;
+}
+
+.order-form .order-submit {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  height: auto;
+  padding: 0.7rem 1.25rem;
+  border: 0;
+  border-radius: 0.55rem;
+  background: var(--accent, #214dc7);
+  color: white;
+  font: inherit;
+  font-weight: 650;
+  text-align: center;
+  cursor: pointer;
+}
+
+.order-form .order-submit:hover:enabled {
+  background: color-mix(in srgb, var(--accent, #214dc7), black 12%);
+}
+
+.order-form .order-submit:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.order-form :is(input, select, button, textarea, summary):focus-visible {
+  outline: 3px solid var(--focus, #2855d0);
+  outline-offset: 3px;
+}
+
+.order-form .order-status,
+.order-form .order-privacy {
   margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
-.order-color {
-  font-weight: 600;
-}
-
-.order-privacy {
-  color: #b8c2c9;
-  line-height: 1.45;
+.order-form .order-privacy {
+  color: var(--muted, #536171);
 }
 
 .order-status:empty {
-  display: none;
+  height: 0;
+  margin-block-start: -1rem;
 }
 
-.order-status[data-state="success"] {
-  color: #a6e4c0;
+.order-form .order-status:not(:empty) {
+  padding-inline-start: 0.75rem;
+  border-inline-start: 3px solid var(--accent, #214dc7);
+  overflow-wrap: anywhere;
 }
 
-.order-status[data-state="error"] {
-  color: #ffb6a0;
+.order-form .order-status[data-state="error"] {
+  border-color: #ac4c28;
 }
 
-.order-submit {
-  width: 100%;
-  min-height: 2.8rem;
-}
-
-.order-submit:disabled {
-  opacity: 0.65;
-  cursor: wait;
-}
-
-@media (max-width: 34rem) {
-  .order-fields {
+@media (max-width: 38rem) {
+  .order-form .order-fields {
     grid-template-columns: minmax(0, 1fr);
   }
 }

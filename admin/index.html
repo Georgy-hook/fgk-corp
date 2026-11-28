@@ -1,182 +1,264 @@
 <!doctype html>
 <html lang="ru">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#101816">
-    <meta name="robots" content="noindex, nofollow">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://raw.githubusercontent.com; connect-src 'self' https://api.github.com https://api.netlify.com; base-uri 'none'; form-action 'none'; object-src 'none'">
-    <title>Каталог · FGK Corp</title>
-    <link rel="stylesheet" href="./admin.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4f5f6" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'; object-src 'none'"
+    />
+    <title>Студия каталога — FGK Corp</title>
+    <link rel="stylesheet" href="./admin.css" />
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="../" aria-label="FGK Corp, на главную">
-        <span class="brand-mark" aria-hidden="true">FGK</span>
-        <span class="brand-name">Корпоративный каталог</span>
-      </a>
-      <a class="quiet-link" href="../">На сайт</a>
-    </header>
-
-    <main class="shell">
-      <section class="intro">
-        <p class="eyebrow">УПРАВЛЕНИЕ КАТАЛОГОМ</p>
-        <h1>Рабочая область</h1>
-        <p class="intro-copy">Добавляйте модели, обновляйте карточки и настройте получение заявок.</p>
-      </section>
-
-      <section class="access-card" aria-labelledby="access-title">
-        <div class="access-copy">
-          <p class="eyebrow">ДОСТУП К РЕПОЗИТОРИЮ</p>
-          <h2 id="access-title">Подключить FGK Corp</h2>
-          <p>GitHub проверяет права при чтении и публикации. Токен остаётся в памяти этой вкладки и не сохраняется.</p>
-          <a class="inline-link" href="https://github.com/settings/personal-access-tokens/new?name=FGK+Corp+Catalog&amp;target_name=Georgy-hook&amp;expires_in=30&amp;contents=write" target="_blank" rel="noreferrer">Создать Fine-grained token на GitHub</a>
-          <p class="access-hint">Выберите только репозиторий <strong>Georgy-hook/fgk-corp</strong> и разрешите <strong>Contents: Read and write</strong>. Metadata включается GitHub автоматически.</p>
-        </div>
-        <form id="access-form" class="access-form">
-          <label for="access-token">Personal access token</label>
-          <div class="input-row">
-            <input id="access-token" name="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…" required>
-            <button class="button button-primary" type="submit">Подключить</button>
-          </div>
-          <p id="access-status" class="status" role="status" aria-live="polite"></p>
-        </form>
-      </section>
-
-      <section id="workspace" class="workspace" hidden>
-        <div class="workspace-heading">
-          <div>
-            <p class="eyebrow">GEORGY-HOOK / FGK-CORP / MAIN</p>
-            <h2>Рабочая область</h2>
-          </div>
-          <button id="sign-out" class="button button-quiet" type="button">Завершить сеанс</button>
-        </div>
-
-        <nav class="tabs" aria-label="Разделы управления">
-          <button class="tab is-active" type="button" data-panel="catalog-panel" aria-selected="true">Модели</button>
-          <button class="tab" type="button" data-panel="orders-panel" aria-selected="false">Заявки</button>
+    <a class="skip" href="#editor">К редактору</a>
+    <header>
+      <div class="bar frame">
+        <a class="brand" href="../" aria-label="FGK Corp, на витрину"
+          >FGK<span>Corp</span></a
+        >
+        <nav aria-label="Сервисы">
+          <a href="../">Витрина</a><button id="orders-open">Заявки</button>
         </nav>
-
-        <section id="catalog-panel" class="panel is-active" aria-labelledby="catalog-title">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">ТОВАРЫ</p>
-              <h2 id="catalog-title">Каталог моделей</h2>
-            </div>
-            <label class="select-label" for="product-select">Открытая карточка
-              <select id="product-select">
-                <option value="__new__">Новая модель</option>
-              </select>
-            </label>
+        <button id="session" class="session">Подключить GitHub</button>
+      </div>
+    </header>
+    <main class="frame">
+      <div class="mast">
+        <h1>Студия каталога</h1>
+        <span id="mode">Без подключения</span>
+      </div>
+      <div class="desk">
+        <aside class="library" aria-label="Библиотека моделей">
+          <div class="section-title">
+            <h2>Модели</h2>
+            <span id="count" class="count">0</span>
           </div>
-
-          <form id="product-form" class="product-form">
-            <div class="media-column">
-              <label class="field-label" for="cover-file">Обложка модели</label>
-              <label id="cover-drop" class="dropzone" for="cover-file" tabindex="0">
-                <img id="cover-preview" alt="Предпросмотр обложки" hidden>
-                <span id="cover-prompt" class="drop-prompt">
-                  <span class="upload-mark" aria-hidden="true">＋</span>
-                  <strong>Добавьте изображение</strong>
-                  <span>Перетащите сюда или нажмите для выбора</span>
-                  <small>JPG, PNG, WebP или AVIF · до 10 МБ</small>
-                </span>
+          <button id="new-product" class="primary full">
+            <b aria-hidden="true">＋</b> Новая модель
+          </button>
+          <label class="search"
+            >Поиск по каталогу<input
+              id="search"
+              type="search"
+              placeholder="Название или адрес"
+          /></label>
+          <div id="library-list" class="library-list"></div>
+          <div id="library-status" class="muted" role="status"></div>
+          <button id="retry-library" class="link" hidden>
+            Обновить список
+          </button>
+        </aside>
+        <section id="editor" tabindex="-1" aria-labelledby="editor-title">
+          <div class="editor-heading">
+            <div>
+              <span id="record-kind" class="muted">Карточка модели</span>
+              <h2 id="editor-title">Новая модель</h2>
+            </div>
+            <span id="record-state" class="tag">Черновик</span>
+          </div>
+          <form id="product-form" autocomplete="off" novalidate>
+            <fieldset id="editor-fields">
+              <legend class="sr">Поля карточки</legend>
+              <div class="main-fields">
+                <div class="proof">
+                  <div class="proof-image">
+                    <img
+                      id="cover-preview"
+                      alt="Предпросмотр обложки"
+                      hidden
+                    /><span id="cover-empty">Обложка модели</span>
+                  </div>
+                  <div class="proof-caption">
+                    <span id="proof-category">Без категории</span
+                    ><strong id="proof-name">Название модели</strong>
+                    <p id="proof-info"></p>
+                  </div>
+                </div>
+                <div class="identity">
+                  <label
+                    >Название<input
+                      id="product-name"
+                      maxlength="100"
+                      required
+                      placeholder="Например, Буран БТС-001"
+                  /></label>
+                  <label
+                    >Категория<input
+                      id="product-category"
+                      maxlength="60"
+                      list="categories"
+                      required
+                      placeholder="Космонавтика" /><datalist
+                      id="categories"
+                    ></datalist
+                  ></label>
+                  <label
+                    >Адрес карточки<input
+                      id="product-slug"
+                      maxlength="64"
+                      autocapitalize="none"
+                      spellcheck="false"
+                      required
+                      placeholder="buran-bts-001"
+                    /><small
+                      >Латиница, цифры и дефисы. После публикации адрес не
+                      меняется.</small
+                    ></label
+                  >
+                </div>
+              </div>
+              <label class="description"
+                >Описание<textarea
+                  id="product-description"
+                  rows="3"
+                  maxlength="2500"
+                  required
+                  placeholder="Что входит в комплект и чем интересна модель?"
+                ></textarea>
               </label>
-              <input id="cover-file" name="cover" type="file" accept="image/jpeg,image/png,image/webp,image/avif" class="visually-hidden">
-              <p id="cover-status" class="field-note">Изображение показывается в каталоге.</p>
-            </div>
-
-            <div class="fields-column">
-              <div class="form-grid">
-                <label class="field field-wide" for="product-name">Название
-                  <input id="product-name" name="name" type="text" maxlength="100" placeholder="Название модели" required>
-                </label>
-                <label class="field" for="product-slug">Адрес карточки
-                  <input id="product-slug" name="slug" type="text" maxlength="64" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" autocomplete="off" placeholder="model-name" required>
-                </label>
-                <label class="field" for="product-category">Категория
-                  <input id="product-category" name="category" type="text" maxlength="60" placeholder="Космос, техника…" list="category-options" required>
-                  <datalist id="category-options"></datalist>
-                </label>
-                <label class="field field-wide" for="product-description">Описание
-                  <textarea id="product-description" name="description" rows="4" maxlength="2500" placeholder="Материалы, масштаб и особенности модели" required></textarea>
-                </label>
-              </div>
-
-              <div class="field-group">
-                <div class="field-group-heading">
-                  <div>
-                    <span class="field-label">Файлы модели</span>
-                    <p class="field-note">STL-файлы для скачивания. GLB покажет модель в браузере.</p>
-                  </div>
+              <section class="work-section">
+                <h3>Медиа и файлы</h3>
+                <p>
+                  Перетащите файлы в нужное поле или выберите с устройства. До
+                  128 МиБ новых файлов за публикацию.
+                </p>
+                <div id="upload-groups" class="uploads"></div>
+              </section>
+              <section class="work-section">
+                <div class="section-title">
+                  <h3>Варианты окраса</h3>
+                  <button type="button" id="add-color" class="link">
+                    + Добавить цвет
+                  </button>
                 </div>
-                <label class="file-control" for="stl-files">
-                  <span class="file-icon" aria-hidden="true">STL</span>
-                  <span><strong id="stl-title">Выбрать файлы STL</strong><small>Можно добавить несколько файлов · до 25 МБ каждый</small></span>
-                  <input id="stl-files" name="stl" type="file" accept=".stl,model/stl" multiple>
-                </label>
-                <p id="stl-list" class="selected-files">Файл STL обязателен для новой модели.</p>
-                <label class="file-control file-control-compact" for="glb-file">
-                  <span class="file-icon file-icon-muted" aria-hidden="true">3D</span>
-                  <span><strong id="glb-title">Добавить просмотр в браузере</strong><small>Один файл GLB · до 25 МБ</small></span>
-                  <input id="glb-file" name="glb" type="file" accept=".glb,model/gltf-binary">
-                </label>
-              </div>
-
-              <div class="field-group swatch-group">
-                <div class="field-group-heading">
-                  <div>
-                    <span class="field-label">Варианты окраса</span>
-                    <p class="field-note">Добавьте доступные цвета для предпросмотра модели.</p>
-                  </div>
-                  <button id="add-swatch" class="button button-small button-quiet" type="button">Добавить цвет</button>
+                <div id="colors"></div>
+              </section>
+              <section class="work-section">
+                <div class="section-title">
+                  <h3>Характеристики</h3>
+                  <button type="button" id="add-detail" class="link">
+                    + Добавить пару
+                  </button>
                 </div>
-                <div id="swatches" class="swatches"></div>
+                <div id="details"></div>
+              </section>
+            </fieldset>
+            <section class="review" aria-labelledby="review-title">
+              <h3 id="review-title">Перед публикацией</h3>
+              <ul id="readiness"></ul>
+              <p class="muted">
+                Черновики и файлы остаются в этой вкладке при переключении
+                моделей. После её закрытия они будут потеряны.
+              </p>
+              <div class="actions">
+                <button id="publish-product" type="submit" class="primary">
+                  Продолжить с GitHub</button
+                ><button id="reload-product" type="button" hidden>
+                  Перечитать из main
+                </button>
+                <button type="button" id="discard" hidden>
+                  Сбросить черновик
+                </button>
               </div>
-
-              <div class="publish-bar">
-                <p id="product-status" class="status" role="status" aria-live="polite">Выберите новую модель или откройте карточку каталога.</p>
-                <button id="publish-product" class="button button-primary" type="submit">Опубликовать модель</button>
+              <p id="product-status" role="status"></p>
+              <div id="result" hidden>
+                <a id="commit-link" target="_blank" rel="noreferrer"></a
+                ><a
+                  href="https://github.com/Georgy-hook/fgk-corp/actions/workflows/pages.yml"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Статус сборки Pages ↗</a
+                >
               </div>
-            </div>
+            </section>
           </form>
         </section>
-
-        <section id="orders-panel" class="panel" aria-labelledby="orders-title" hidden>
-          <div class="settings-layout">
-            <div class="settings-copy">
-              <p class="eyebrow">НАСТРОЙКА ЗАЯВОК</p>
-              <h2 id="orders-title">Куда отправлять заявки</h2>
-              <p>Укажите новый адрес получателя. Настройка обновится напрямую через Netlify.</p>
-              <p>Новый адрес может потребовать подтверждения по письму от Netlify Forms.</p>
-            </div>
-            <form id="orders-form" class="settings-form">
-              <label class="field" for="orders-email">Новый адрес получателя
-                <input id="orders-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="name@example.com" required>
-              </label>
-              <label class="field" for="netlify-token">Netlify personal access token
-                <input id="netlify-token" name="netlifyToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Вводится только для этого запроса" required>
-                <span class="field-note">Токен не сохраняется и очищается сразу после запроса.</span>
-              </label>
-              <p id="orders-status" class="status" role="status" aria-live="polite"></p>
-              <div class="settings-actions">
-                <button id="save-orders" class="button button-primary" type="submit">Обновить получателя</button>
-                <a class="inline-link" href="https://app.netlify.com/user/applications#personal-access-tokens" target="_blank" rel="noreferrer">Создать токен Netlify</a>
-              </div>
-            </form>
-          </div>
-        </section>
-
-        <footer class="workspace-footer">
-          <span id="connection-label">Подключение к GitHub</span>
-          <div class="footer-links">
-            <a href="https://github.com/Georgy-hook/fgk-corp" target="_blank" rel="noreferrer">Открыть репозиторий</a>
-            <a href="https://github.com/Georgy-hook/fgk-corp/actions" target="_blank" rel="noreferrer">Статус публикации</a>
-          </div>
-        </footer>
-      </section>
+      </div>
     </main>
-
+    <dialog id="access-dialog" aria-labelledby="access-title">
+      <div class="section-title">
+        <h2 id="access-title">Доступ к GitHub</h2>
+        <button class="close" id="access-close" aria-label="Закрыть">×</button>
+      </div>
+      <p>
+        Для записи в <strong>Georgy-hook/fgk-corp</strong> нужен короткоживущий
+        fine-grained token. Подключение само по себе ничего не публикует.
+      </p>
+      <ol>
+        <li>
+          <a
+            href="https://github.com/settings/personal-access-tokens/new?name=FGK+Catalog&amp;target_name=Georgy-hook&amp;expires_in=1&amp;contents=write"
+            target="_blank"
+            rel="noreferrer"
+            >Создайте ключ на GitHub ↗</a
+          >
+          со сроком на один день.
+        </li>
+        <li>
+          В <strong>Only select repositories</strong> выберите только
+          <strong>fgk-corp</strong>.
+        </li>
+        <li>
+          Разрешите только <strong>Contents: Read and write</strong>. Metadata
+          доступно для чтения автоматически.
+        </li>
+      </ol>
+      <p id="access-separate" hidden>
+        Ключ вводится только в отдельно открытой студии.
+        <a href="./" target="_blank" rel="noopener noreferrer">Открыть студию в отдельной вкладке</a>
+      </p>
+      <form id="access-form" autocomplete="off">
+        <label
+          >Ключ GitHub<input
+            id="access-token"
+            type="password"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="github_pat_…"
+            required /></label
+        ><small
+          >Только в памяти вкладки. Кнопка «Выйти» забывает ключ, но оставляет
+          черновики.</small
+        ><button type="submit" class="primary">Подключить</button>
+        <p id="access-status" role="status"></p>
+      </form>
+    </dialog>
+    <dialog id="orders-dialog" aria-labelledby="orders-title">
+      <div class="section-title">
+        <h2 id="orders-title">Заявки и уведомления</h2>
+        <button id="orders-close" class="close" aria-label="Закрыть">×</button>
+      </div>
+      <p>
+        Контакты покупателей и адрес получателя доступны только после входа в
+        проект <strong>fgk-corp-orders</strong> на Netlify.
+      </p>
+      <p>
+        <a
+          href="https://app.netlify.com/projects/fgk-corp-orders/forms"
+          target="_blank"
+          rel="noreferrer"
+          >Открыть заявки в Netlify ↗</a
+        >
+      </p>
+      <p>
+        <a
+          href="https://app.netlify.com/projects/fgk-corp-orders/configuration/notifications#form-submission-notifications"
+          target="_blank"
+          rel="noreferrer"
+          >Изменить почту уведомлений ↗</a
+        >
+      </p>
+      <small
+        >В Form submission notifications измените адрес в существующем
+        email-уведомлении формы. Новый адрес может потребовать
+        подтверждения.</small
+      >
+    </dialog>
     <script type="module" src="./admin.js"></script>
   </body>
 </html>

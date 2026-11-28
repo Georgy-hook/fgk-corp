@@ -1,195 +1,208 @@
-const API_ROOT = "https://api.github.com";
-const OWNER = "Georgy-hook";
-const REPOSITORY = "fgk-corp";
-const BRANCH = "main";
+const ROOT = 'https://api.github.com/repos/Georgy-hook/fgk-corp';
+const PRODUCT = /^catalog\/([a-z0-9]+(?:-[a-z0-9]+)*)\/product\.json$/;
+const INDEX = 'catalog/index.json';
+const MEDIA = /^(?:assets|files)\/(?:[\w-][\w.-]*\/)*[\w-][\w.-]*\.(?:avif|png|jpe?g|webp|stl|zip|glb)$/i;
+
+function gitSha(value) {
+  if (!/^[a-f0-9]{40}$/.test(value)) throw new Error('GitHub не вернул версию объекта.');
+  return value;
+}
+
+function checkBatch(changes) {
+  const documents = changes.filter(({ path }) => PRODUCT.test(path));
+  if (documents.length !== 1) throw new Error('За одну публикацию можно изменить одну карточку.');
+  const [, slug] = documents[0].path.match(PRODUCT);
+  const prefix = `catalog/${slug}/`;
+  const paths = new Set();
+  for (const { path } of changes) {
+    const media = path.startsWith(prefix) && MEDIA.test(path.slice(prefix.length));
+    if ((!media && path !== INDEX && path !== documents[0].path) || paths.has(path)) {
+      throw new Error('Список файлов не соответствует выбранной карточке.');
+    }
+    paths.add(path);
+  }
+  return slug;
+}
+
+function githubError(response) {
+  const status = response.status;
+  let message;
+  if (response.headers.get('x-ratelimit-remaining') === '0' || status === 429) {
+    message = 'Лимит запросов GitHub исчерпан. Сохраните черновик и повторите позже.';
+  } else if (status === 401) {
+    message = 'GitHub отклонил ключ. Проверьте срок действия или подключите новый.';
+  } else if (status === 403 || status === 404) {
+    message = 'Проверьте доступ ключа к fgk-corp, разрешение Contents: Read and write и правила ветки main.';
+  } else {
+    message = 'GitHub не выполнил запрос.';
+  }
+  const error = new Error(`GitHub ${status}: ${message}`);
+  error.status = status;
+  return error;
+}
 
 export class GitHubRepository {
+  #token;
+  #session = new AbortController();
+  #json = new Map();
+
   constructor(token) {
-    this.token = token;
-    this.owner = OWNER;
-    this.repository = REPOSITORY;
-    this.branch = BRANCH;
+    this.#token = token;
   }
 
   clear() {
-    this.token = "";
+    this.#token = '';
+    this.#session.abort();
+    this.#json.clear();
+  }
+
+  // Only fixed, repository-relative API routes reach this credentialled client.
+  async #request(route, method = 'GET', body = null) {
+    if (!this.#token) throw new Error('Сеанс с GitHub завершён.');
+    const request = new AbortController();
+    const abort = () => request.abort();
+    this.#session.signal.addEventListener('abort', abort, { once: true });
+    const timer = setTimeout(abort, method === 'POST' ? 120000 : 30000);
+    try {
+      const response = await fetch(ROOT + route, {
+        method,
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${this.#token}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        credentials: 'omit',
+        redirect: 'error',
+        cache: 'no-store',
+        referrerPolicy: 'no-referrer',
+        signal: request.signal,
+      });
+      if (!response.ok) throw githubError(response);
+      return await response.json();
+    } catch (error) {
+      if (error.status) throw error;
+      throw new Error(this.#token ? 'Нет подтверждения от GitHub. Проверьте соединение.' : 'Сеанс завершён.');
+    } finally {
+      clearTimeout(timer);
+      this.#session.signal.removeEventListener('abort', abort);
+    }
   }
 
   async connect() {
-    const repository = await this.request(`/repos/${this.owner}/${this.repository}`);
-
-    const canWrite = repository.permissions?.push || repository.permissions?.maintain || repository.permissions?.admin;
-
-    if (!canWrite) {
-      throw new Error("У этого аккаунта нет прав на запись в FGK Corp.");
+    const repo = await this.#request('');
+    if (!repo.permissions?.push && !repo.permissions?.maintain && !repo.permissions?.admin) {
+      throw new Error('У этого аккаунта нет прав на запись в FGK Corp.');
     }
-
-    await this.getRef();
-    return repository;
+    return repo;
   }
 
-  async request(path, options = {}) {
-    if (!this.token) {
-      throw new Error("Сеанс с GitHub завершён.");
-    }
-
-    const response = await fetch(`${API_ROOT}${path}`, {
-      ...options,
-      cache: options.method ? undefined : "no-store",
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${this.token}`,
-        "X-GitHub-Api-Version": "2022-11-28",
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...options.headers,
-      },
-    });
-
-    const responseText = response.status === 204 ? "" : await response.text();
-    let body = null;
-
-    if (responseText) {
-      try {
-        body = JSON.parse(responseText);
-      } catch {
-        body = { message: responseText };
-      }
-    }
-
-    if (!response.ok) {
-      const detail = typeof body?.message === "string" ? body.message : response.statusText;
-      throw new Error(`GitHub ${response.status}: ${detail}`);
-    }
-
-    return body;
-  }
-
-  async getRef() {
-    const branch = encodeURIComponent(this.branch);
-    return this.request(`/repos/${this.owner}/${this.repository}/git/ref/heads/${branch}`);
+  getRef() {
+    return this.#request('/git/ref/heads/main');
   }
 
   async getSnapshot() {
-    const ref = await this.getRef();
-    const headSha = ref.object.sha;
-    const commit = await this.request(`/repos/${this.owner}/${this.repository}/git/commits/${headSha}`);
-    const treeSha = commit.tree.sha;
-    const tree = await this.request(`/repos/${this.owner}/${this.repository}/git/trees/${treeSha}?recursive=1`);
-
-    if (tree.truncated) {
-      throw new Error("В репозитории слишком много файлов для безопасной загрузки каталога.");
+    const headSha = gitSha((await this.getRef()).object.sha);
+    const treeSha = gitSha((await this.#request(`/git/commits/${headSha}`)).tree.sha);
+    const treeAt = (sha, recursive = false) => this.#request(`/git/trees/${gitSha(sha)}${recursive ? '?recursive=1' : ''}`);
+    const root = await treeAt(treeSha);
+    const catalog = root.tree.find((e) => e.path === 'catalog' && e.type === 'tree');
+    const files = new Map();
+    if (catalog) {
+      const listing = await treeAt(catalog.sha, true);
+      if (!listing.truncated) {
+        for (const entry of listing.tree) files.set(`catalog/${entry.path}`, entry);
+      } else {
+        // GitHub caps a recursive tree response at 7 MB. Never use a partial snapshot.
+        const queue = [{ prefix: 'catalog/', sha: catalog.sha }];
+        while (queue.length) {
+          const { prefix, sha } = queue.pop();
+          const branch = await treeAt(sha);
+          if (branch.truncated) throw new Error('GitHub вернул неполный список каталога. Сохранение остановлено.');
+          for (const entry of branch.tree) {
+            const path = prefix + entry.path;
+            files.set(path, entry);
+            if (entry.type === 'tree') queue.push({ prefix: `${path}/`, sha: entry.sha });
+          }
+        }
+      }
     }
-
-    return {
-      headSha,
-      treeSha,
-      files: new Map(tree.tree.map((entry) => [entry.path, entry])),
-    };
+    return { headSha, treeSha, files };
   }
 
   async readJsonFile(snapshot, path) {
+    if (path !== INDEX && !PRODUCT.test(path)) throw new Error('Запрошена не карточка каталога.');
     const entry = snapshot.files.get(path);
-
-    if (!entry || entry.type !== "blob") {
-      return { exists: false, sha: null, value: null };
+    if (!entry || entry.type !== 'blob') return { exists: false, sha: null, value: null };
+    const sha = gitSha(entry.sha);
+    if (!this.#json.has(sha)) {
+      if (entry.size > 2 * 1024 * 1024) throw new Error(`Слишком большой JSON: ${path}.`);
+      const blob = await this.#request(`/git/blobs/${sha}`);
+      if (blob.encoding !== 'base64') throw new Error(`Не удалось прочитать ${path}.`);
+      this.#json.set(sha, JSON.parse(decodeText(blob.content)));
     }
-
-    const blob = await this.request(`/repos/${this.owner}/${this.repository}/git/blobs/${entry.sha}`);
-
-    if (blob.encoding !== "base64" || typeof blob.content !== "string") {
-      throw new Error(`Не удалось прочитать файл ${path}.`);
-    }
-
-    try {
-      const bytes = base64ToBytes(blob.content);
-      const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-      return { exists: true, sha: entry.sha, value };
-    } catch {
-      throw new Error(`Файл ${path} не содержит корректный JSON.`);
-    }
+    return { exists: true, sha, value: structuredClone(this.#json.get(sha)) };
   }
 
   async commitFiles(snapshot, changes, onProgress = () => {}) {
-    if (changes.length === 0) {
-      throw new Error("Нет изменений для публикации.");
-    }
-
-    const treeEntries = [];
-
+    const slug = checkBatch(changes);
+    const baseTree = gitSha(snapshot.treeSha);
+    const parent = gitSha(snapshot.headSha);
+    const entries = [];
     for (const [index, change] of changes.entries()) {
-      validateRepositoryPath(change.path);
-      onProgress(`Загружаю файлы ${index + 1} из ${changes.length}…`);
-      const blob = await this.request(`/repos/${this.owner}/${this.repository}/git/blobs`, {
-        method: "POST",
-        body: JSON.stringify({ content: change.content, encoding: change.encoding }),
-      });
-      treeEntries.push({ path: change.path, mode: "100644", type: "blob", sha: blob.sha });
-    }
-
-    onProgress("Формирую один коммит каталога…");
-    const tree = await this.request(`/repos/${this.owner}/${this.repository}/git/trees`, {
-      method: "POST",
-      body: JSON.stringify({ base_tree: snapshot.treeSha, tree: treeEntries }),
-    });
-    const commit = await this.request(`/repos/${this.owner}/${this.repository}/git/commits`, {
-      method: "POST",
-      body: JSON.stringify({
-        message: "Catalog: Publish model changes\n\n- Update model files and product metadata\n- Refresh the catalog index",
-        tree: tree.sha,
-        parents: [snapshot.headSha],
-      }),
-    });
-
-    onProgress("Публикую изменения в main…");
-    try {
-      await this.request(`/repos/${this.owner}/${this.repository}/git/refs/heads/${encodeURIComponent(this.branch)}`, {
-        method: "PATCH",
-        body: JSON.stringify({ sha: commit.sha, force: false }),
-      });
-    } catch (error) {
-      if (/GitHub (?:409|422)/.test(error.message)) {
-        throw new Error("Ветка main обновилась во время сохранения. Перезагрузите карточку и повторите попытку.");
+      const entry = { path: change.path, mode: '100644', type: 'blob' };
+      onProgress(`Подготовка файлов: ${index + 1} из ${changes.length}…`);
+      if (change.path.endsWith('.json')) {
+        entry.content = change.encoding === 'base64' ? decodeText(change.content) : change.content;
+        JSON.parse(entry.content);
+      } else {
+        const content = change.file ? await encodeFileToBase64(change.file) : change.content;
+        const blob = await this.#request('/git/blobs', 'POST', { content, encoding: 'base64' });
+        entry.sha = gitSha(blob.sha);
       }
-
-      throw error;
+      entries.push(entry);
     }
-
-    return commit.sha;
+    onProgress('Сохраняю карточку и файлы одним коммитом…');
+    const tree = await this.#request('/git/trees', 'POST', { base_tree: baseTree, tree: entries });
+    const commit = await this.#request('/git/commits', 'POST', {
+      message: `Catalog: ${slug}`, tree: gitSha(tree.sha), parents: [parent],
+    });
+    const sha = gitSha(commit.sha);
+    try {
+      await this.#request('/git/refs/heads/main', 'PATCH', { sha, force: false });
+    } catch (error) {
+      if ([409, 422].includes(error.status)) {
+        throw new Error('GitHub не обновил main. Проверьте текущую версию карточки и правила ветки перед повтором.');
+      }
+      if (error.status) throw error;
+      // A lost response is not proof the ref was unchanged. Do not retry a write automatically.
+      const latest = await this.getRef().catch(() => null);
+      if (latest?.object.sha !== sha) throw new Error(`GitHub не подтвердил обновление. Проверьте main и коммит ${sha.slice(0, 7)} перед повтором.`);
+    }
+    return sha;
   }
+}
+
+function decodeText(value) {
+  const binary = atob(value.replace(/\s/g, ''));
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
 }
 
 export function encodeTextToBase64(value) {
   return bytesToBase64(new TextEncoder().encode(value));
 }
 
-export function encodeFileToBase64(file) {
-  return file.arrayBuffer().then((buffer) => bytesToBase64(new Uint8Array(buffer)));
+export async function encodeFileToBase64(file) {
+  return bytesToBase64(new Uint8Array(await file.arrayBuffer()));
 }
 
 function bytesToBase64(bytes) {
-  let binary = "";
-  const chunkSize = 0x8000;
-
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  if (typeof bytes.toBase64 === 'function') return bytes.toBase64();
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
   }
-
   return btoa(binary);
-}
-
-function base64ToBytes(value) {
-  const binary = atob(value.replace(/\s/g, ""));
-  const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return bytes;
-}
-
-function validateRepositoryPath(path) {
-  if (typeof path !== "string" || !path || path.startsWith("/") || path.includes("\\") || path.split("/").includes("..")) {
-    throw new Error("Недопустимый путь к файлу в каталоге.");
-  }
 }

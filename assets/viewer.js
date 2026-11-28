@@ -1,352 +1,259 @@
 import * as THREE from '../vendor/three/build/three.module.js';
-import { GLTFLoader } from '../vendor/three/examples/jsm/loaders/GLTFLoader.js';
-import { STLLoader } from '../vendor/three/examples/jsm/loaders/STLLoader.js';
 import { OrbitControls } from '../vendor/three/examples/jsm/controls/OrbitControls.js';
+import { disposeModel, loadModel, loadPart, paintFinish, printableParts } from './model-media.js';
 
-const colorPattern = /^#?([\da-f]{6})$/i;
-
-function assetUrl(base, file) {
-  const folder = base instanceof URL ? new URL(base.href) : new URL(base, document.baseURI);
-  if (!folder.pathname.endsWith('/')) folder.pathname += '/';
-  return new URL(file, folder).href;
-}
-
-function createControls(documentRef, product) {
-  const root = documentRef.createElement('div');
-  root.className = 'fgk-viewer';
-
-  const stage = documentRef.createElement('div');
-  stage.className = 'fgk-viewer__stage';
-  stage.setAttribute('role', 'group');
-  stage.setAttribute('aria-label', `3D-просмотр модели «${product.name || 'изделие'}»`);
-
-  const canvas = documentRef.createElement('canvas');
-  canvas.className = 'fgk-viewer__canvas';
+function makeView(doc, product) {
+  function element(tag, name, parent) {
+    const node = doc.createElement(tag);
+    node.className = `fgk-viewer${name ? `__${name}` : ''}`;
+    parent?.append(node);
+    return node;
+  }
+  const root = element('div');
+  const stage = element('div', 'stage', root);
+  const canvas = element('canvas', 'canvas', stage);
   canvas.tabIndex = 0;
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', `Интерактивная 3D-модель «${product.name || 'изделие'}»`);
-  stage.append(canvas);
-
-  const status = documentRef.createElement('p');
-  status.className = 'fgk-viewer__status';
+  canvas.setAttribute('aria-label', `${product.name}. Стрелки — поворот, плюс и минус — масштаб, Home — сброс.`);
+  const status = element('p', 'status', stage);
   status.setAttribute('role', 'status');
-  status.setAttribute('aria-live', 'polite');
   status.textContent = 'Загружаем модель…';
-  stage.append(status);
-  root.append(stage);
-
-  const toolbar = documentRef.createElement('div');
-  toolbar.className = 'fgk-viewer__toolbar';
-
-  const palette = documentRef.createElement('div');
-  palette.className = 'fgk-viewer__palette';
+  const toolbar = element('div', 'toolbar', root);
+  const partLabel = element('label', 'part', toolbar);
+  partLabel.hidden = true;
+  partLabel.append('Деталь STL');
+  const part = element('select', 'select', partLabel);
+  const palette = element('div', 'palette', toolbar);
+  palette.hidden = true;
   palette.setAttribute('role', 'group');
-  palette.setAttribute('aria-label', 'Цвет модели');
-  toolbar.append(palette);
-
-  const actions = documentRef.createElement('div');
-  actions.className = 'fgk-viewer__actions';
-  toolbar.append(actions);
-
-  function addAction(label, text, className, onClick) {
-    const button = documentRef.createElement('button');
-    button.className = `fgk-viewer__button ${className || ''}`.trim();
-    button.type = 'button';
-    button.setAttribute('aria-label', label);
-    button.title = label;
-    button.textContent = text;
-    button.addEventListener('click', onClick);
-    actions.append(button);
-    return button;
+  palette.setAttribute('aria-label', 'Окрас модели');
+  const actions = element('div', 'actions', toolbar);
+  function button(parent, label, text, klass, action) {
+    const node = element('button', klass, parent);
+    node.type = 'button';
+    node.title = label;
+    node.setAttribute('aria-label', label);
+    node.textContent = text;
+    node.addEventListener('click', action);
+    return node;
   }
-
-  root.append(toolbar);
-  return { root, stage, canvas, status, palette, addAction };
+  return { root, stage, canvas, status, partLabel, part, palette, actions, button };
 }
 
-function setStatus(status, message, isError = false) {
-  status.textContent = message;
-  status.classList.toggle('fgk-viewer__status--error', isError);
-}
+const colorPattern = /^#[\da-f]{6}$/i;
+const initialDirection = new THREE.Vector3(1.55, 0.95, 1.65).normalize();
 
-function getStlFiles(product) {
-  return (Array.isArray(product.stl) ? product.stl : [])
-    .map((entry) => (typeof entry === 'string' ? entry : entry?.file))
-    .filter((file) => typeof file === 'string' && /\.stl$/i.test(file));
-}
-
-async function loadModel(base, product) {
-  if (product.glb) {
-    try {
-      const folder = new URL(assetUrl(base, '.'));
-      const manager = new THREE.LoadingManager();
-      manager.setURLModifier((url) => {
-        if (/^(data|blob):/i.test(url)) return url;
-        const resource = new URL(url, folder);
-        if (resource.origin !== folder.origin || !resource.pathname.startsWith(folder.pathname)) {
-          throw new Error('Модель ссылается на файл вне каталога товара.');
-        }
-        return resource.href;
-      });
-      const gltf = await new GLTFLoader(manager).loadAsync(assetUrl(base, product.glb));
-      return { object: gltf.scene, animations: gltf.animations };
-    } catch (error) {
-      const stlFiles = getStlFiles(product);
-      if (!stlFiles.length) throw error;
-    }
-  }
-
-  const stlFiles = getStlFiles(product);
-  if (!stlFiles.length) {
-    throw new Error('Для интерактивного просмотра добавьте файл GLB или STL.');
-  }
-
-  let lastError;
-  for (const file of stlFiles) {
-    try {
-      const geometry = await new STLLoader().loadAsync(assetUrl(base, file));
-      if (!geometry.getAttribute('normal')) geometry.computeVertexNormals();
-      const material = new THREE.MeshStandardMaterial({
-        color: product.colors?.[0]?.hex || '#aeb9c3',
-        metalness: 0.14,
-        roughness: 0.58,
-      });
-      return { object: new THREE.Mesh(geometry, material), animations: [] };
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError || new Error('Не удалось открыть файл STL.');
-}
-
-function applyColor(object, hex) {
-  const match = colorPattern.exec(hex || '');
-  if (!match) return;
-  const color = `#${match[1]}`;
-  object.traverse((node) => {
-    if (!node.isMesh) return;
-    const materials = Array.isArray(node.material) ? node.material : [node.material];
-    for (const material of materials) {
-      if (material?.color) material.color.set(color);
-    }
-  });
-}
-
-function disposeObject(object) {
-  object?.traverse((node) => {
-    node.geometry?.dispose();
-    const materials = Array.isArray(node.material) ? node.material : [node.material];
-    for (const material of materials) {
-      if (!material) continue;
-      for (const value of Object.values(material)) {
-        if (value?.isTexture) {
-          const bitmap = value.source?.data;
-          if (typeof ImageBitmap !== 'undefined' && bitmap instanceof ImageBitmap) bitmap.close();
-          value.dispose();
-        }
-      }
-      material.dispose();
-    }
-  });
-}
-
-function errorMessage(error) {
-  if (typeof WebGLRenderingContext === 'undefined') {
-    return 'Просмотр 3D-модели недоступен в этом браузере. Файлы для заказа доступны ниже.';
-  }
-  if (error?.message?.includes('WebGL')) {
-    return 'Для 3D-просмотра включите поддержку WebGL. Файлы для заказа доступны ниже.';
-  }
-  if (error?.message?.includes('интерактивного просмотра')) return error.message;
-  return 'Не удалось загрузить превью. Файлы для заказа доступны ниже.';
-}
-
-/** Mounts a model viewer into a catalogue card and resolves to its cleanup function. */
 export async function mountViewer(container, { base, product }) {
-  const documentRef = container.ownerDocument || document;
-  const controlsView = createControls(documentRef, product);
-  container.replaceChildren(controlsView.root);
-
+  const view = makeView(container.ownerDocument, product);
+  container.replaceChildren(view.root);
+  const parts = printableParts(product);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38);
+  const center = new THREE.Vector3();
+  let radius = 0;
+  let fit = 0;
   let renderer;
-  let controls;
-  let resizeObserver;
-  let resizeHandler;
-  let frameId = 0;
+  let orbit;
+  let observer;
+  let frame = 0;
   let model;
+  let paint;
+  let partIndex = -1;
+  let requestId = 0;
   let disposed = false;
-  let selectedColor = product.selectedColor || null;
+  let color = product.selectedColor || product.colors?.[0]?.hex;
 
-  function chooseColor(hex, name, notify = false) {
-    const match = colorPattern.exec(hex || '');
-    if (!match || !model) return;
-    selectedColor = `#${match[1]}`;
-    applyColor(model, selectedColor);
-    for (const swatch of controlsView.palette.querySelectorAll('.fgk-viewer__swatch')) {
-      swatch.setAttribute('aria-pressed', String(swatch.dataset.hex?.toLowerCase() === selectedColor.toLowerCase()));
-    }
-    requestRender();
-    if (notify) {
-      container.dispatchEvent(new documentRef.defaultView.CustomEvent('fgk:viewer-color', {
-        bubbles: true,
-        detail: { hex: selectedColor, name: name || 'Выбранный цвет' },
-      }));
-    }
-  }
-
-  function receiveColor(event) {
-    const { hex, name } = event.detail || {};
-    selectedColor = hex || selectedColor;
-    chooseColor(hex, name);
-  }
-
-  container.addEventListener('fgk:viewer-color', receiveColor);
-
-  const cleanup = () => {
-    if (disposed) return;
-    disposed = true;
-    if (frameId) cancelAnimationFrame(frameId);
-    resizeObserver?.disconnect();
-    if (resizeHandler) window.removeEventListener('resize', resizeHandler);
-    container.removeEventListener('fgk:viewer-color', receiveColor);
-    controls?.removeEventListener('change', requestRender);
-    controls?.dispose();
-    disposeObject(model);
-    renderer?.dispose();
-    renderer?.domElement.remove();
-    controlsView.root.remove();
-  };
-
-  function requestRender() {
-    if (disposed || frameId || !renderer || !controls) return;
-    frameId = requestAnimationFrame(() => {
-      frameId = 0;
-      if (disposed) return;
-      controls.update();
-      renderer.render(scene, camera);
+  function render() {
+    if (disposed || frame || !renderer) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      if (!disposed) renderer.render(scene, camera);
     });
   }
 
-  let scene;
-  let camera;
+  function reset() {
+    orbit.target.copy(center);
+    camera.position.copy(center).addScaledVector(initialDirection, fit);
+    orbit.update();
+    render();
+  }
+
+  function resize() {
+    const { width, height } = view.stage.getBoundingClientRect();
+    if (!width || !height || !radius || !renderer) return;
+    const zoom = fit ? camera.position.distanceTo(orbit.target) / fit : 1;
+    camera.aspect = width / height;
+    const halfV = THREE.MathUtils.degToRad(camera.fov / 2);
+    const halfH = Math.atan(Math.tan(halfV) * camera.aspect);
+    fit = 1.05 * radius / Math.sin(Math.min(halfV, halfH));
+    orbit.minDistance = radius * 0.20;
+    orbit.maxDistance = fit * 4;
+    camera.near = Math.max(0.000001, radius / 1000);
+    camera.far = fit * 10;
+    camera.updateProjectionMatrix();
+    const direction = camera.position.clone().sub(orbit.target);
+    if (!direction.lengthSq()) direction.copy(initialDirection);
+    camera.position.copy(orbit.target).addScaledVector(direction.normalize(), fit * zoom);
+    renderer.setSize(width, height, false);
+    orbit.update();
+    render();
+  }
+
+  function chooseColor(hex) {
+    if (!colorPattern.test(hex)) return;
+    color = hex;
+    paint?.(hex);
+    for (const swatch of view.palette.children) {
+      swatch.setAttribute('aria-pressed', String(swatch.dataset.hex === hex.toLowerCase()));
+    }
+    render();
+  }
+
+  function mount(object, index) {
+    const bounds = new THREE.Box3().setFromObject(object);
+    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+    if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) {
+      disposeModel(object);
+      throw new Error('В файле нет видимой геометрии.');
+    }
+    if (model) scene.remove(model);
+    disposeModel(model);
+    model = object;
+    partIndex = index;
+    scene.add(model);
+    paint = paintFinish(model, product.colors?.[0]?.hex, index === -1);
+    chooseColor(color);
+    center.copy(sphere.center);
+    radius = sphere.radius;
+    fit = 0;
+    resize();
+    reset();
+    view.status.textContent = index >= 0 && parts.length > 1
+      ? `Деталь ${index + 1} из ${parts.length}: ${parts[index].label}`
+      : 'Перетащите, чтобы повернуть';
+    view.status.removeAttribute('data-error');
+  }
+
+  function zoom(factor) {
+    const direction = camera.position.clone().sub(orbit.target);
+    const distance = THREE.MathUtils.clamp(direction.length() * factor, orbit.minDistance, orbit.maxDistance);
+    camera.position.copy(orbit.target).addScaledVector(direction.normalize(), distance);
+    orbit.update();
+    render();
+  }
+
+  function keys(event) {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === 'Home') reset();
+    else if (event.key === '+' || event.key === '=') zoom(0.80);
+    else if (event.key === '-') zoom(1.25);
+    else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+      const sphere = new THREE.Spherical().setFromVector3(camera.position.clone().sub(orbit.target));
+      const step = Math.PI / 18;
+      if (event.key === 'ArrowLeft') sphere.theta -= step;
+      if (event.key === 'ArrowRight') sphere.theta += step;
+      if (event.key === 'ArrowUp') sphere.phi -= step;
+      if (event.key === 'ArrowDown') sphere.phi += step;
+      sphere.makeSafe();
+      camera.position.setFromSpherical(sphere).add(orbit.target);
+      orbit.update();
+      render();
+    } else return;
+    event.preventDefault();
+  }
+
+  async function switchPart() {
+    const index = Number(view.part.value);
+    const id = ++requestId;
+    view.status.textContent = 'Загружаем деталь…';
+    try {
+      const object = await loadPart(base, parts[index].file, color);
+      if (disposed || !container.isConnected || id !== requestId) {
+        disposeModel(object);
+        return;
+      }
+      mount(object, index);
+    } catch {
+      if (disposed || id !== requestId) return;
+      view.part.value = String(partIndex);
+      view.status.dataset.error = 'true';
+      view.status.textContent = 'Не удалось открыть выбранную деталь. Загрузите её STL ниже.';
+    }
+  }
+
+  const receiveColor = (event) => chooseColor(event.detail?.hex);
+  container.addEventListener('fgk:viewer-color', receiveColor);
+  function cleanup() {
+    if (disposed) return;
+    disposed = true;
+    requestId++;
+    cancelAnimationFrame(frame);
+    observer?.disconnect();
+    window.removeEventListener('resize', resize);
+    view.canvas.removeEventListener('keydown', keys);
+    view.part.removeEventListener('change', switchPart);
+    container.removeEventListener('fgk:viewer-color', receiveColor);
+    orbit?.dispose();
+    disposeModel(model);
+    renderer?.dispose();
+    view.root.remove();
+  }
+
   try {
-    const loaded = await loadModel(base, product);
-    model = loaded.object;
-    if (disposed || !container.isConnected) {
+    renderer = new THREE.WebGLRenderer({ canvas: view.canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    scene.add(new THREE.HemisphereLight(0xf0f5ff, 0x8b9399, 1.6));
+    const key = new THREE.DirectionalLight(0xfff8ed, 2.6);
+    const rim = new THREE.DirectionalLight(0xd5e5ff, 1.2);
+    key.position.set(4, 6, 3);
+    rim.position.set(-4, 2, -3);
+    scene.add(key, rim);
+    orbit = new OrbitControls(camera, view.canvas);
+    orbit.enablePan = false;
+    orbit.addEventListener('change', render);
+    const { object, part } = await loadModel(base, product, parts);
+    if (!container.isConnected) {
+      disposeModel(object);
       cleanup();
       return cleanup;
     }
-
-    renderer = new THREE.WebGLRenderer({ canvas: controlsView.canvas, alpha: true, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
-
-    scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight(0xeaf3ff, 0x46515e, 2.1));
-    const keyLight = new THREE.DirectionalLight(0xffffff, 3.1);
-    keyLight.position.set(4, 6, 5);
-    scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0x9ebcf0, 1.4);
-    fillLight.position.set(-5, 2, -3);
-    scene.add(fillLight);
-
-    const initialColor = selectedColor || product.colors?.[0]?.hex;
-    if (initialColor) applyColor(model, initialColor);
-    scene.add(model);
-
-    const bounds = new THREE.Box3().setFromObject(model);
-    const sphere = bounds.getBoundingSphere(new THREE.Sphere());
-    const radius = Math.max(sphere.radius, 0.01);
-    const target = sphere.center;
-    camera = new THREE.PerspectiveCamera(38, 1, Math.max(radius / 1000, 0.00001), radius * 100);
-    camera.position.copy(target).add(new THREE.Vector3(radius * 1.55, radius * 0.95, radius * 1.65));
-    camera.lookAt(target);
-
-    controls = new OrbitControls(camera, controlsView.canvas);
-    controls.enableDamping = false;
-    controls.enablePan = false;
-    controls.minDistance = radius * 0.12;
-    controls.maxDistance = radius * 9;
-    controls.target.copy(target);
-    controls.listenToKeyEvents(controlsView.canvas);
-    controls.addEventListener('change', requestRender);
-
-    const initialPosition = camera.position.clone();
-    controlsView.addAction('Приблизить модель', '+', 'fgk-viewer__button--symbol', () => {
-      const offset = camera.position.clone().sub(controls.target).multiplyScalar(0.8);
-      camera.position.copy(controls.target).add(offset);
-      controls.update();
-      requestRender();
-    });
-    controlsView.addAction('Отдалить модель', '−', 'fgk-viewer__button--symbol', () => {
-      const offset = camera.position.clone().sub(controls.target).multiplyScalar(1.25);
-      camera.position.copy(controls.target).add(offset);
-      controls.update();
-      requestRender();
-    });
-    controlsView.addAction('Сбросить ракурс', 'Сбросить', '', () => {
-      camera.position.copy(initialPosition);
-      controls.target.copy(target);
-      controls.update();
-      requestRender();
-    });
-
-    const paletteItems = Array.isArray(product.colors) ? product.colors : [];
-    if (paletteItems.length) {
-      paletteItems.forEach((color, index) => {
-        const match = colorPattern.exec(color.hex || '');
-        if (!match) return;
-        const button = documentRef.createElement('button');
-        button.className = 'fgk-viewer__swatch';
-        button.type = 'button';
-        const swatchHex = `#${match[1]}`;
-        button.dataset.hex = swatchHex;
-        button.style.setProperty('--swatch-color', swatchHex);
-        button.setAttribute('aria-label', `Цвет: ${color.name || `вариант ${index + 1}`}`);
-        button.setAttribute('aria-pressed', String((selectedColor || paletteItems[0]?.hex || '').toLowerCase() === swatchHex.toLowerCase()));
-        button.title = color.name || `Вариант ${index + 1}`;
-        button.addEventListener('click', () => {
-          chooseColor(color.hex, color.name, true);
+    mount(object, part);
+    if (part >= 0 && parts.length > 1) {
+      parts.forEach((entry, index) => view.part.add(new Option(entry.label || `Деталь ${index + 1}`, String(index))));
+      view.part.value = String(part);
+      view.partLabel.hidden = false;
+      view.part.addEventListener('change', switchPart);
+    }
+    if (!product.externalColors) {
+      for (const { name, hex } of product.colors || []) {
+        if (!colorPattern.test(hex)) continue;
+        const button = view.button(view.palette, name, '', 'swatch', () => {
+          container.dispatchEvent(new CustomEvent('fgk:viewer-color', { bubbles: true, detail: { name, hex } }));
         });
-        controlsView.palette.append(button);
-      });
-      controlsView.palette.hidden = Boolean(product.externalColors) || !controlsView.palette.childElementCount;
-    } else {
-      controlsView.palette.hidden = true;
+        button.dataset.hex = hex.toLowerCase();
+        button.style.setProperty('--swatch-color', hex);
+      }
+      view.palette.hidden = !view.palette.childElementCount;
+      chooseColor(color);
     }
-
-    resizeHandler = () => {
-      const bounds = controlsView.stage.getBoundingClientRect();
-      if (!bounds.width || !bounds.height) return;
-      camera.aspect = bounds.width / bounds.height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(bounds.width, bounds.height, false);
-      requestRender();
-    };
+    view.button(view.actions, 'Приблизить модель', '+', 'button', () => zoom(0.8));
+    view.button(view.actions, 'Отдалить модель', '−', 'button', () => zoom(1.25));
+    view.button(view.actions, 'Сбросить ракурс', 'Исходный ракурс', 'button', reset);
+    view.canvas.addEventListener('keydown', keys);
     if ('ResizeObserver' in window) {
-      resizeObserver = new ResizeObserver(resizeHandler);
-      resizeObserver.observe(controlsView.stage);
+      observer = new ResizeObserver(resize);
+      observer.observe(view.stage);
     } else {
-      window.addEventListener('resize', resizeHandler);
+      window.addEventListener('resize', resize);
     }
-    resizeHandler();
-    setStatus(controlsView.status, 'Вращайте модель мышью или касанием.');
-  } catch (error) {
-    resizeObserver?.disconnect();
-    if (resizeHandler) window.removeEventListener('resize', resizeHandler);
-    controls?.removeEventListener('change', requestRender);
-    controls?.dispose();
-    controls = undefined;
-    if (renderer) renderer.dispose();
-    renderer = undefined;
-    disposeObject(model);
-    model = undefined;
-    setStatus(controlsView.status, errorMessage(error), true);
-    controlsView.canvas.hidden = true;
-    controlsView.palette.hidden = true;
+  } catch {
+    view.canvas.hidden = true;
+    view.status.dataset.error = 'true';
+    view.status.textContent = renderer
+      ? 'Не удалось показать модель. Файлы для печати доступны для скачивания.'
+      : 'WebGL недоступен. Модель можно скачать или рассмотреть на изображениях.';
   }
-
   return cleanup;
 }
