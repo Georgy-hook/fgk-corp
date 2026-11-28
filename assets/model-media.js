@@ -2,29 +2,38 @@ import * as THREE from '../vendor/three/build/three.module.js';
 import { GLTFLoader } from '../vendor/three/examples/jsm/loaders/GLTFLoader.js';
 import { STLLoader } from '../vendor/three/examples/jsm/loaders/STLLoader.js';
 
+import { resourceOwner } from './viewer/resources.js';
+import { parseModel } from './viewer/parse.js';
+
+// The public unit of ownership is the visible root. Also account for resources
+// from other scenes in the same glTF, without retaining its parser or node graph.
+const modelOwners = new WeakMap();
+
 export function printableParts(product) {
-  return (product.stl || []).filter((entry) => typeof entry?.file === 'string' && /\.stl$/i.test(entry.file));
+  return (product.stl || []).filter(
+    (entry) => typeof entry?.file === 'string' && /\.stl$/i.test(entry.file),
+  );
 }
 
 function productLoader(base) {
   const folder = new URL(base, document.baseURI);
   if (!folder.pathname.endsWith('/')) folder.pathname += '/';
-  if (folder.origin !== location.origin) throw new Error('Нет локальной папки модели.');
+  if (folder.origin !== location.origin) throw new Error('scene.external');
   const resolve = (file) => {
     const url = new URL(file, folder);
     if (url.origin !== folder.origin || !url.pathname.startsWith(folder.pathname)) {
-      throw new Error('Файл находится вне папки модели.');
+      throw new Error('scene.external');
     }
     return url.href;
   };
   const manager = new THREE.LoadingManager();
-  manager.setURLModifier((url) => /^(data|blob):/i.test(url) ? url : resolve(url));
+  manager.setURLModifier((url) => (/^(data|blob):/i.test(url) ? url : resolve(url)));
   return { resolve, manager };
 }
 
 async function readBuffer(url, signal) {
   const response = await fetch(url, { signal });
-  if (!response.ok) throw new Error('Файл модели недоступен.');
+  if (!response.ok) throw new Error('scene.fetch');
   return response.arrayBuffer();
 }
 
@@ -34,7 +43,11 @@ export async function loadPart(base, file, color, signal) {
   signal?.throwIfAborted();
   const geometry = new STLLoader(manager).parse(buffer);
   if (!geometry.getAttribute('normal')) geometry.computeVertexNormals();
-  const material = new THREE.MeshStandardMaterial({ color: color || '#b1bdc4', metalness: 0.10, roughness: 0.60 });
+  const material = new THREE.MeshStandardMaterial({
+    color: color || '#b1bdc4',
+    metalness: 0.1,
+    roughness: 0.6,
+  });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x = -Math.PI / 2; // Print files are shown with the build plate in the horizontal plane.
   return mesh;
@@ -47,7 +60,16 @@ export async function loadModel(base, product, parts, signal) {
       const url = resolve(product.glb);
       const bytes = await readBuffer(url, signal);
       signal?.throwIfAborted();
-      const gltf = await new GLTFLoader(manager).parseAsync(bytes, new URL('.', url).href);
+      const owner = resourceOwner();
+      const gltf = await parseModel(
+        new GLTFLoader(manager),
+        manager,
+        bytes,
+        new URL('.', url).href,
+        signal,
+        owner,
+      );
+      modelOwners.set(gltf.scene, owner);
       if (signal?.aborted) {
         disposeModel(gltf.scene);
         signal.throwIfAborted();
@@ -57,7 +79,7 @@ export async function loadModel(base, product, parts, signal) {
       if (signal?.aborted || !parts.length) throw error;
     }
   }
-  if (!parts.length) throw new Error('Для интерактивного просмотра нужен файл GLB или STL.');
+  if (!parts.length) throw new Error('failed');
   const object = await loadPart(base, parts[0].file, product.colors?.[0]?.hex, signal);
   return { object, part: 0 };
 }
@@ -75,7 +97,10 @@ export function paintFinish(object, firstColor, isAssembly) {
   return (hex) => {
     if (!/^#[\da-f]{6}$/i.test(hex || '')) return;
     for (const [mat, original] of source) {
-      if (marked ? mat.userData.fgkPaint !== true : mat.transparent || mat.map || mat.transmission > 0) continue;
+      if (
+        marked ? mat.userData.fgkPaint !== true : mat.transparent || mat.map || mat.transmission > 0
+      )
+        continue;
       if (isAssembly && hex.toLowerCase() === firstColor?.toLowerCase()) mat.color.copy(original);
       else mat.color.set(hex);
     }
@@ -83,18 +108,9 @@ export function paintFinish(object, firstColor, isAssembly) {
 }
 
 export function disposeModel(object) {
-  object?.traverse((node) => {
-    node.geometry?.dispose();
-    const materials = Array.isArray(node.material) ? node.material : [node.material];
-    for (const mat of materials) {
-      if (!mat) continue;
-      for (const value of Object.values(mat)) {
-        if (!value?.isTexture) continue;
-        const bitmap = value.source?.data;
-        if (typeof ImageBitmap !== 'undefined' && bitmap instanceof ImageBitmap) bitmap.close();
-        value.dispose();
-      }
-      mat.dispose();
-    }
-  });
+  if (!object) return;
+  const owner = modelOwners.get(object) || resourceOwner();
+  modelOwners.delete(object);
+  owner.collect(object);
+  owner.dispose();
 }

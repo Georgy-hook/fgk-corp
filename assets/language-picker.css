@@ -1,0 +1,152 @@
+/* Used by all three entry points. The native name always accompanies its flag in the list. */
+.fgk-language {
+  position: relative;
+  display: inline-block;
+  color: #1d2832;
+  font:
+    500 0.875rem/1.3 system-ui,
+    sans-serif;
+  text-align: start;
+  flex: none;
+}
+.fgk-language button {
+  appearance: none;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+.fgk-language .fgk-language__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.48rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #c4cbd2;
+  border-radius: 6px;
+  background: transparent;
+  white-space: nowrap;
+}
+.fgk-language__trigger::before,
+.fgk-language__trigger::after,
+.fgk-language__option[aria-selected='true']::after {
+  content: '';
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  mask: url('./icons/languages.svg') no-repeat center / contain;
+}
+.fgk-language__trigger::after {
+  width: 14px;
+  mask-image: url('./icons/chevron-down.svg');
+}
+.fgk-language__trigger[aria-expanded='true'] {
+  color: #1747be;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.fgk-language__trigger[aria-expanded='true']::after {
+  transform: rotate(180deg);
+}
+.fgk-language__code {
+  display: none;
+}
+.fgk-language__current-flag {
+  display: none;
+}
+.fgk-language__list {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  inset-inline-end: var(--menu-end, 0px);
+  width: max-content;
+  min-width: 11.5rem;
+  max-width: calc(100vw - 24px);
+  max-height: min(22rem, 65vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid #ccd2d8;
+  border-radius: 9px;
+  box-shadow: 0 10px 30px #14283a23;
+}
+.fgk-language__list[hidden] {
+  display: none;
+}
+.fgk-language .fgk-language__option {
+  display: grid;
+  grid-template-columns: 24px 1fr 18px;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: #fff;
+  text-align: start;
+}
+.fgk-language__option[aria-selected='true'] {
+  color: #123f9e;
+}
+.fgk-language__option[aria-selected='true']::after {
+  mask-image: url('./icons/check.svg');
+}
+.fgk-language .fgk-language__option:is(:hover, :focus-visible) {
+  background: #eaf0fa;
+}
+.fgk-language__flag {
+  width: 24px;
+  height: 18px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #18263322;
+  object-fit: cover;
+}
+.fgk-language button:focus-visible {
+  outline: 2px solid #214fbc;
+  outline-offset: -2px;
+}
+@media (max-width: 44rem) {
+  .fgk-language__selected {
+    display: none;
+  }
+  .fgk-language__code {
+    display: inline;
+  }
+  .fgk-language__current-flag {
+    display: block;
+  }
+  .fgk-language__trigger::before {
+    display: none;
+  }
+  .fgk-language .fgk-language__trigger {
+    gap: 0.32rem;
+    padding-inline: 0.46rem;
+  }
+  .fgk-language__trigger::after {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fgk-language__list:not([hidden]) {
+    animation: fgk-menu-open 140ms ease-out;
+    transform-origin: top right;
+  }
+  .fgk-language__trigger::after {
+    transition: transform 140ms ease-out;
+  }
+  @keyframes fgk-menu-open {
+    from {
+      opacity: 0;
+      transform: translateY(-3px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

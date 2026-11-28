@@ -1,0 +1,35 @@
+export default {
+  fields: 'So‘rov tafsilotlari',
+  model: 'Model',
+  color: 'Rang',
+  channel: 'Bog‘lanish usuli',
+  vk: 'VK',
+  email: 'Elektron pochta',
+  telegramContact: 'Telegram’dagi foydalanuvchi nomi yoki havola',
+  telegramHint: '@username yoki t.me/username',
+  vkContact: 'VK profilingiz',
+  more: 'Buyurtma uchun istaklaringizni yozing',
+  name: 'Sizga qanday murojaat qilaylik? (ixtiyoriy)',
+  comment: 'Izoh (ixtiyoriy)',
+  commentHint: 'Masalan, nechta model kerakligini yoki rangga oid istaklaringizni yozing',
+  honeypot: 'Bu maydonni bo‘sh qoldiring',
+  privacy:
+    'Aloqa ma’lumotlaringiz Netlify Forms orqali yuboriladi va faqat so‘rovingizga javob berish uchun ishlatiladi.',
+  submit: 'So‘rovni yuborish',
+  sending: 'Yuborilmoqda…',
+  sendingStatus: 'So‘rovingiz yuborilmoqda.',
+  loading: 'Katalog yuklanmoqda…',
+  chooseFirst: 'Avval modelni tanlang',
+  unavailable: 'Katalog hozir ochilmayapti',
+  catalogError: 'Katalogni ochib bo‘lmadi. Modelni tanlash uchun sahifani yangilab ko‘ring.',
+  noColors: 'Rang variantlari yo‘q',
+  discuss: 'Yozishmada kelishamiz',
+  contactRequired: 'Javob berishimiz uchun aloqa ma’lumotlaringizni kiriting.',
+  invalidEmail: 'Elektron pochta manzilini tekshiring. Masalan: name@example.com.',
+  accepted:
+    'So‘rovingiz qabul qilindi: {model}, rangi — {color}. Tafsilotlarni kelishish uchun siz ko‘rsatgan usulda bog‘lanamiz.',
+  rejected:
+    'Xizmat so‘rovni qabul qilmadi (kod: {code}). Ma’lumotlarni tekshirib, qayta urinib ko‘ring.',
+  unconfirmed:
+    'So‘rov qabul qilingani tasdiqlanmadi. Internetga ulanishni tekshiring. Ma’lumotlaringiz shaklda qoldi; qayta yuborsangiz, so‘rov takrorlanishi mumkin.',
+};

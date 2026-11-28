@@ -27,7 +27,7 @@
   line-height: 1.3;
 }
 
-.order-form :is(input:not([tabindex="-1"]), select, textarea) {
+.order-form :is(input:not([tabindex='-1']), select, textarea) {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
@@ -71,7 +71,7 @@
   resize: vertical;
 }
 
-.order-form input::placeholder {
+.order-form :is(input, textarea)::placeholder {
   color: var(--muted, #536171);
   opacity: 1;
 }
@@ -148,8 +148,16 @@
   overflow-wrap: anywhere;
 }
 
-.order-form .order-status[data-state="error"] {
+.order-form .order-status[data-state='error'] {
   border-color: #ac4c28;
+}
+
+.order-form [aria-invalid='true'] {
+  border-color: #ac4c28;
+}
+
+.order-form .order-status[data-state='success'] {
+  border-color: #38724e;
 }
 
 @media (max-width: 38rem) {

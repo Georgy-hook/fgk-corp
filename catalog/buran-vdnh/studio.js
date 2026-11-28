@@ -110,7 +110,10 @@
         else ctx.lineTo(x, y);
       }
       ctx.closePath();
-      for (const [blur, dx, dz, alpha] of [[23, 6, 4, 0.23], [6, 1, 1, 0.34]]) {
+      for (const [blur, dx, dz, alpha] of [
+        [23, 6, 4, 0.23],
+        [6, 1, 1, 0.34],
+      ]) {
         ctx.shadowOffsetX = 1024 + dx;
         ctx.shadowOffsetY = dz;
         ctx.shadowColor = `rgba(255,255,255,${alpha})`;
@@ -210,10 +213,10 @@
     if (!spec) return null;
     const triple = (v) => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite);
     if (!triple(spec.axis) || !triple(spec.pivot) || !Number.isFinite(spec.angle)) {
-      throw new Error(`Не заданы параметры оси детали ${part.id}.`);
+      throw new Error('scene.hinge');
     }
     const axis = new T.Vector3(...spec.axis);
-    if (!axis.lengthSq()) throw new Error(`Нулевая ось детали ${part.id}.`);
+    if (!axis.lengthSq()) throw new Error('scene.hinge');
     axis.normalize();
     const pivot = new T.Vector3(...spec.pivot);
     const rest = part.node.quaternion.clone();
@@ -223,7 +226,8 @@
     const bounds = part.bounds.clone();
     const cloud = part.points.map((p) => p.clone());
     return {
-      control: spec.family === 'bay' ? 'bay' : part.id.endsWith('Upper') ? 'brakeUpper' : 'brakeLower',
+      control:
+        spec.family === 'bay' ? 'bay' : part.id.endsWith('Upper') ? 'brakeUpper' : 'brakeLower',
       set(travel) {
         turn.setFromAxisAngle(axis, (Math.PI / 180) * spec.angle * travel);
         shift.copy(pivot).sub(pivot.clone().applyQuaternion(turn));

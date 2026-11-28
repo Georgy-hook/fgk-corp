@@ -1,0 +1,30 @@
+export default {
+  canvas:
+    '{name}. Strelka tugmalari bilan aylantiring, plyus va minus bilan masshtabni o‘zgartiring. Boshlang‘ich ko‘rinishga qaytish uchun Home tugmasini bosing.',
+  loading: 'Model yuklanmoqda…',
+  part: 'STL detali',
+  palette: 'Model rangi',
+  numberedPart: '{index}-detal',
+  position: 'Jami {total} ta detal, {index}-detal: {label}',
+  gesture: 'Bir barmoq bilan aylantiring, ikki barmoq bilan masshtabni o‘zgartiring',
+  loadingPart: 'Detal yuklanmoqda…',
+  partFailed:
+    'Tanlangan detalni ochib bo‘lmadi. Uning STL faylini quyidan yuklab olishingiz mumkin.',
+  in: 'Modelni yaqinlashtirish',
+  out: 'Modelni uzoqlashtirish',
+  reset: 'Boshlang‘ich ko‘rinishga qaytish',
+  resetText: 'Boshlang‘ich ko‘rinish',
+  failed: 'Modelni ko‘rsatib bo‘lmadi. Chop etish uchun fayllarni yuklab olishingiz mumkin.',
+  'scene.browser': 'Modelni 3D ko‘rinishda ko‘rish uchun brauzerni yangilang.',
+  'scene.fetch': 'Model geometriyasini yuklab bo‘lmadi.',
+  'scene.invalid': 'Geometriya fayli shikastlangan yoki unda ko‘rinadigan model yo‘q.',
+  'scene.external': 'Model o‘z jildidan tashqaridagi faylga murojaat qilmoqda.',
+  'scene.part': 'Katalogda ko‘rsatilgan detallardan biri modelda yo‘q.',
+  'scene.surface': 'Detallardan birining sirtlari yo‘q.',
+  'scene.library': '3D kutubxonasini yuklab bo‘lmadi.',
+  'scene.webgl':
+    'Modelni ko‘rish uchun WebGL 2 kerak. Rasmlarni ko‘rishingiz yoki model fayllarini yuklab olishingiz mumkin.',
+  'scene.contextLost': '3D konteksti yo‘qoldi. Ko‘rish oynasini qayta oching.',
+  'scene.snapshot': 'Model ekranga chiqqach, surat olish mumkin bo‘ladi.',
+  'scene.hinge': 'Modeldagi sharnir o‘qi noto‘g‘ri belgilangan.',
+};

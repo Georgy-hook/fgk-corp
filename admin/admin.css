@@ -97,6 +97,8 @@ header {
 }
 .bar {
   min-height: 59px;
+  flex-wrap: wrap;
+  padding-block: 0.35rem;
 }
 .brand {
   font-size: 1.5rem;
@@ -378,6 +380,7 @@ small {
   min-width: 0;
 }
 .drop {
+  position: relative;
   padding: 12px;
   border: 1px dashed #9dabb8;
   border-radius: 5px;
@@ -390,10 +393,13 @@ small {
   background: var(--pale);
   border-color: var(--accent);
 }
-.drop input {
+.drop input[type="file"] {
   position: absolute;
   width: 1px;
   height: 1px;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
   opacity: 0;
 }
 .drop strong {
@@ -489,6 +495,27 @@ dialog {
 }
 dialog::backdrop {
   background: rgb(23 31 40/0.45);
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog {
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 150ms ease,
+      transform 150ms ease,
+      display 150ms allow-discrete,
+      overlay 150ms allow-discrete;
+  }
+  dialog[open] {
+    opacity: 1;
+    transform: none;
+  }
+  @starting-style {
+    dialog[open] {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
 }
 dialog p,
 dialog ol {

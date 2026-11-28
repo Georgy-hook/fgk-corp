@@ -8,14 +8,14 @@
       name="description"
       content="Реконструкция БТС-001 на ВДНХ в масштабе 1:144. Осмотрите модель и скачайте сборку FreeCAD или детали для фотополимерной печати."
     />
-    <title>Буран БТС-001 | Форма полёта</title>
+    <title data-i18n="pageTitle">Буран БТС-001 | Форма полёта</title>
     <link rel="stylesheet" href="exhibit.css" />
     <link rel="stylesheet" href="stage.css" />
     <link rel="stylesheet" href="mobile.css" />
     <script defer src="assets/catalog.js"></script>
     <link rel="stylesheet" href="embed.css" />
-    <script defer src="exhibit.js"></script>
-    <script defer src="embed.js"></script>
+    <link rel="stylesheet" href="../../assets/language-picker.css" />
+    <script type="module" src="exhibit.js"></script>
   </head>
   <body id="top">
     <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -35,20 +35,26 @@
         />
       </symbol>
     </svg>
-    <a class="skip" href="#exposition">К модели</a>
+    <a data-i18n="skip" class="skip" href="#exposition">К модели</a>
     <header class="mast">
       <div class="shell mast-inner">
-        <a class="identity" href="#top" aria-label="Форма полёта, в начало">
+        <a
+          data-i18n-aria-label="homeLink"
+          class="identity"
+          href="#top"
+          aria-label="Форма полёта, в начало"
+        >
           <svg viewBox="0 0 42 36" aria-hidden="true">
             <path fill="currentColor" d="M2 31 32 4 21 28l-8 2 7-9-13 10Zm21 0 11-23 3 23Z" />
           </svg>
-          <span>Форма полёта</span>
+          <span data-i18n="identity">Форма полёта</span>
         </a>
-        <nav aria-label="Разделы страницы">
-          <a href="#details" class="nav-details">Детали</a>
-          <a href="#workshop">Мастерская</a>
-          <a href="#passport">Прототип</a>
+        <nav data-i18n-aria-label="navLabel" aria-label="Разделы страницы">
+          <a data-i18n="navDetails" href="#details" class="nav-details">Детали</a>
+          <a data-i18n="workshop" href="#workshop">Мастерская</a>
+          <a data-i18n="prototype" href="#passport">Прототип</a>
         </nav>
+        <div id="exhibit-language"></div>
       </div>
     </header>
     <main>
@@ -56,6 +62,7 @@
         <div class="shell" id="instrument">
           <div class="stage" id="stage">
             <img
+              data-i18n-alt="posterAlt"
               class="poster"
               id="poster"
               src="assets/hero.webp"
@@ -65,20 +72,44 @@
               fetchpriority="high"
             />
             <canvas
+              data-i18n-aria-label="canvasLabel"
               id="model"
               tabindex="0"
               aria-label="Трёхмерная модель. Стрелки вращают, плюс и минус меняют масштаб, Home возвращает исходный вид."
               aria-describedby="gesture"
               hidden
             ></canvas>
-            <div class="camera-tools" id="camera-tools" role="group" aria-label="Камера" hidden>
-              <button type="button" data-command="out" aria-label="Отдалить" title="Отдалить">
+            <div
+              data-i18n-aria-label="camera"
+              class="camera-tools"
+              id="camera-tools"
+              role="group"
+              aria-label="Камера"
+              hidden
+            >
+              <button
+                data-i18n-aria-label="zoomOut"
+                data-i18n-title="zoomOut"
+                type="button"
+                data-command="out"
+                aria-label="Отдалить"
+                title="Отдалить"
+              >
                 <svg class="icon"><use href="#i-minus" /></svg>
               </button>
-              <button type="button" data-command="in" aria-label="Приблизить" title="Приблизить">
+              <button
+                data-i18n-aria-label="zoomIn"
+                data-i18n-title="zoomIn"
+                type="button"
+                data-command="in"
+                aria-label="Приблизить"
+                title="Приблизить"
+              >
                 <svg class="icon"><use href="#i-plus" /></svg>
               </button>
               <button
+                data-i18n-aria-label="reset"
+                data-i18n-title="reset"
                 type="button"
                 data-command="reset"
                 aria-label="Исходный вид"
@@ -88,10 +119,12 @@
               </button>
             </div>
           </div>
-          <p class="inspection-loading" role="status">Загружаем модель…</p>
+          <p data-i18n="loading" class="inspection-loading" role="status">Загружаем модель…</p>
           <div class="hero-caption">
-            <h1 id="title">Буран</h1>
-            <p class="standfirst">Испытательный макет БТС-001 с&nbsp;ВДНХ в&nbsp;масштабе 1:144.</p>
+            <h1 data-i18n="buran" id="title">Буран</h1>
+            <p data-i18n="subtitle" class="standfirst">
+              Испытательный макет БТС-001 с&nbsp;ВДНХ в&nbsp;масштабе 1:144.
+            </p>
             <button
               id="open-model"
               class="primary"
@@ -101,61 +134,82 @@
               hidden
             >
               <svg class="icon" aria-hidden="true"><use href="#i-orbit" /></svg
-              ><span>Вращать в 3D</span>
+              ><span data-i18n="rotate">Вращать в 3D</span>
             </button>
           </div>
           <p id="scene-error" class="scene-error" role="status" hidden></p>
           <label id="paint-picker" class="part-picker paint-picker" hidden>
-            Окрас
-            <select id="paint" aria-label="Окрас модели"></select>
+            <span data-i18n="paint">Окрас</span>
+            <select data-i18n-aria-label="paintLabel" id="paint" aria-label="Окрас модели"></select>
           </label>
           <details id="model-tools" class="model-tools" open hidden>
-            <summary>Ракурсы и механизмы</summary>
+            <summary data-i18n="cameraTools">Ракурсы и механизмы</summary>
             <div class="inspection-body">
               <div class="control-line">
                 <div class="inspection">
-                  <div class="modes" role="group" aria-label="Положение деталей">
-                    <button type="button" id="assembled" aria-pressed="true">В сборе</button>
-                    <button type="button" id="exploded" aria-pressed="false">Разнести</button>
+                  <div
+                    data-i18n-aria-label="position"
+                    class="modes"
+                    role="group"
+                    aria-label="Положение деталей"
+                  >
+                    <button data-i18n="assembled" type="button" id="assembled" aria-pressed="true">
+                      В сборе
+                    </button>
+                    <button data-i18n="exploded" type="button" id="exploded" aria-pressed="false">
+                      Разнести
+                    </button>
                   </div>
-                  <button type="button" id="underside" class="view-switch" aria-pressed="false">
+                  <button
+                    data-i18n="underside"
+                    type="button"
+                    id="underside"
+                    class="view-switch"
+                    aria-pressed="false"
+                  >
                     Днище без опор
                   </button>
                 </div>
-                <label class="part-picker" for="shot">Ракурс
+                <label class="part-picker" for="shot"
+                  ><span data-i18n="view">Ракурс</span>
                   <select id="shot">
-                    <option value="">Перейти к виду…</option>
-                    <option value="v-home">Вся модель</option>
-                    <option value="v-cockpit">Нос и кабина</option>
-                    <option value="v-opened">Открытый отсек</option>
-                    <option value="v-rear">Кормовой щит</option>
-                    <option value="v-fin">Киль и тормоз</option>
-                    <option value="v-underside">Плитки днища</option>
-                    <option value="v-gear">Основная стойка</option>
+                    <option data-i18n="viewPrompt" value="">Перейти к виду…</option>
+                    <option data-i18n="whole" value="v-home">Вся модель</option>
+                    <option data-i18n="cockpitView" value="v-cockpit">Нос и кабина</option>
+                    <option data-i18n="openedView" value="v-opened">Открытый отсек</option>
+                    <option data-i18n="rearView" value="v-rear">Кормовой щит</option>
+                    <option data-i18n="finView" value="v-fin">Киль и тормоз</option>
+                    <option data-i18n="bottomView" value="v-underside">Плитки днища</option>
+                    <option data-i18n="gearView" value="v-gear">Основная стойка</option>
                   </select>
                 </label>
                 <label class="part-picker" for="parts"
-                  >Деталь<select id="parts">
-                    <option value="">Вся модель</option>
+                  ><span data-i18n="part">Деталь</span
+                  ><select id="parts">
+                    <option data-i18n="whole" value="">Вся модель</option>
                   </select></label
                 >
               </div>
               <fieldset class="mechanisms" id="mechanisms" hidden>
-                <legend>Раскрытие механизмов</legend>
+                <legend data-i18n="mechanisms">Раскрытие механизмов</legend>
                 <div class="hinge-controls">
                   <div>
-                    <label for="bay-opening">Грузовой отсек</label>
-                    <span id="bay-reading" aria-hidden="true">Закрыт</span>
+                    <label data-i18n="bay" for="bay-opening">Грузовой отсек</label>
+                    <span data-i18n="bayClosed" id="bay-reading" aria-hidden="true">Закрыт</span>
                     <input id="bay-opening" type="range" min="0" max="100" value="0" />
                   </div>
                   <div>
-                    <label for="brake-upper-opening">Тормоз: верхняя пара</label>
-                    <span id="brake-upper-reading" aria-hidden="true">Открыта</span>
+                    <label data-i18n="upper" for="brake-upper-opening">Тормоз: верхняя пара</label>
+                    <span data-i18n="brakeOpen" id="brake-upper-reading" aria-hidden="true"
+                      >Открыта</span
+                    >
                     <input id="brake-upper-opening" type="range" min="0" max="100" value="100" />
                   </div>
                   <div>
-                    <label for="brake-lower-opening">Тормоз: нижняя пара</label>
-                    <span id="brake-lower-reading" aria-hidden="true">Открыта</span>
+                    <label data-i18n="lower" for="brake-lower-opening">Тормоз: нижняя пара</label>
+                    <span data-i18n="brakeOpen" id="brake-lower-reading" aria-hidden="true"
+                      >Открыта</span
+                    >
                     <input id="brake-lower-opening" type="range" min="0" max="100" value="100" />
                   </div>
                 </div>
@@ -167,15 +221,26 @@
                   <p class="part-size" id="part-size"></p>
                 </div>
                 <div class="part-actions">
-                  <button id="isolate" class="secondary" type="button" aria-pressed="false">
+                  <button
+                    data-i18n="isolate"
+                    id="isolate"
+                    class="secondary"
+                    type="button"
+                    aria-pressed="false"
+                  >
                     Показать отдельно</button
-                  ><a class="text-link" id="part-download" download>Скачать STL</a>
+                  ><a data-i18n="downloadSTL" class="text-link" id="part-download" download
+                    >Скачать STL</a
+                  >
                 </div>
               </div>
               <p class="gesture" id="gesture">
-                <span class="pointer-copy">Вращайте мышью, приближайте колёсиком.</span
-                ><span class="touch-copy">Вращайте пальцем, приближайте двумя.</span>
-                Коснитесь детали или выберите её в списке.
+                <span data-i18n="mouse" class="pointer-copy"
+                  >Вращайте мышью, приближайте колёсиком.</span
+                ><span data-i18n="touch" class="touch-copy"
+                  >Вращайте пальцем, приближайте двумя.</span
+                >
+                <span data-i18n="pick">Коснитесь детали или выберите её в списке.</span>
               </p>
             </div>
           </details>
@@ -183,28 +248,35 @@
       </section>
       <section id="details" class="shell detail-section" aria-labelledby="detail-title">
         <div class="detail-copy">
-          <h2 id="detail-title">Крупным планом</h2>
+          <h2 data-i18n="closeup" id="detail-title">Крупным планом</h2>
           <fieldset class="detail-list">
-            <legend class="sr-only">Что рассмотреть</legend>
+            <legend data-i18n="detailsLegend" class="sr-only">Что рассмотреть</legend>
             <label
-              ><input type="radio" name="detail" value="cockpit" checked /><span class="detail-name"
+              ><input type="radio" name="detail" value="cockpit" checked /><span
+                data-i18n="cockpit"
+                class="detail-name"
                 >Кабина</span
-              ><span class="detail-note"
+              ><span data-i18n="cockpitNote" class="detail-note"
                 >Шесть стёкол утоплены в общий обвод носа. Ниже ступенями проходит граница чёрной
                 обшивки.</span
               ></label
             >
             <label
-              ><input type="radio" name="detail" value="fin" /><span class="detail-name">Киль</span
-              ><span class="detail-note"
-                >Воздушный тормоз разделён по высоте. Верхняя и нижняя пары створок расходятся
-                в стороны от задней кромки киля.</span
+              ><input type="radio" name="detail" value="fin" /><span
+                data-i18n="fin"
+                class="detail-name"
+                >Киль</span
+              ><span data-i18n="finNote" class="detail-note"
+                >Воздушный тормоз разделён по высоте. Верхняя и нижняя пары створок расходятся в
+                стороны от задней кромки киля.</span
               ></label
             >
             <label
-              ><input type="radio" name="detail" value="gear" /><span class="detail-name"
+              ><input type="radio" name="detail" value="gear" /><span
+                data-i18n="gear"
+                class="detail-name"
                 >Шасси</span
-              ><span class="detail-note"
+              ><span data-i18n="gearNote" class="detail-note"
                 >Носовая и две основные опоры входят в корпус и опираются на три цоколя
                 подставки.</span
               ></label
@@ -213,6 +285,7 @@
         </div>
         <div class="detail-image">
           <img
+            data-i18n-alt="cockpitAlt"
             class="detail-cockpit"
             src="assets/cockpit.webp"
             width="1000"
@@ -221,6 +294,7 @@
             alt="Утопленные стёкла кабины и ступенчатая граница чёрной обшивки носа"
           />
           <img
+            data-i18n-alt="finAlt"
             class="detail-fin"
             src="assets/fin.webp"
             width="1000"
@@ -229,6 +303,7 @@
             alt="Киль с раскрытыми верхней и нижней парами створок воздушного тормоза"
           />
           <img
+            data-i18n-alt="gearAlt"
             class="detail-gear"
             src="assets/gear.webp"
             width="1000"
@@ -241,118 +316,130 @@
       <section class="workshop" id="workshop" aria-labelledby="workshop-title">
         <div class="shell">
           <div class="workshop-head">
-            <h2 id="workshop-title">Мастерская</h2>
-            <p>
+            <h2 data-i18n="workshop" id="workshop-title">Мастерская</h2>
+            <p data-i18n="workshopLead">
               Откройте сборку в FreeCAD или загрузите в слайсер 18 деталей и два посадочных калибра.
             </p>
           </div>
           <div class="downloads">
             <a class="download" href="files/Buran-VDNH.FCStd" download
               ><span
-                ><strong>Исходник FreeCAD</strong><small>Редактируемая сборка, FCStd</small></span
+                ><strong data-i18n="cad">Исходник FreeCAD</strong
+                ><small data-i18n="cadNote">Редактируемая сборка, FCStd</small></span
               ><svg class="icon" aria-hidden="true">
                 <use href="#i-download" /></svg
             ></a>
             <a class="download" href="files/Buran-STL.zip" download
-              ><span><strong>Комплект STL</strong><small>Все детали и калибры, .zip</small></span
+              ><span
+                ><strong data-i18n="kit">Комплект STL</strong
+                ><small data-i18n="kitNote">Все детали и калибры, .zip</small></span
               ><svg class="icon" aria-hidden="true">
                 <use href="#i-download" /></svg
             ></a>
           </div>
           <div class="quick-option" id="ar-option" hidden>
             <a
+              data-i18n-aria-label="arLabel"
               id="quick-look"
               rel="ar"
               aria-label="Посмотреть Буран в своём пространстве"
               aria-describedby="ar-description"
               ><img src="assets/hero.webp" alt="" width="64" height="32"
             /></a>
-            <span id="ar-description">В своём пространстве · музейный окрас</span>
+            <span data-i18n="arNote" id="ar-description"
+              >В своём пространстве · музейный окрас</span
+            >
           </div>
-          <a id="usdz-download" class="quick-option" download hidden>Скачать USDZ</a>
+          <a data-i18n="usdz" id="usdz-download" class="quick-option" download hidden
+            >Скачать USDZ</a
+          >
           <div class="spec-grid">
             <div class="specs">
-              <h3>Размеры</h3>
+              <h3 data-i18n="sizes">Размеры</h3>
               <dl>
                 <div>
-                  <dt>Масштаб</dt>
+                  <dt data-i18n="scale">Масштаб</dt>
                   <dd id="scale">1:144</dd>
                 </div>
                 <div>
-                  <dt>Корпус без шасси и подставки</dt>
+                  <dt data-i18n="hullSize">Корпус без шасси и подставки</dt>
                   <dd id="orbiter">255,08 × 166,6 × 97,13 мм</dd>
                 </div>
                 <div>
-                  <dt>Сборка на подставке</dt>
+                  <dt data-i18n="totalSize">Сборка на подставке</dt>
                   <dd id="size">255,08 × 166,6 × 125,52 мм</dd>
                 </div>
               </dl>
             </div>
             <div class="manual">
-              <h3>Печать и сборка</h3>
-              <p class="print-start">
+              <h3 data-i18n="printing">Печать и сборка</h3>
+              <p data-i18n="calibration" class="print-start">
                 Начните с калибров: слой 0,05 мм, номинальный зазор 0,20 мм на сторону.
               </p>
               <details>
-                <summary>Проверьте посадку на калибрах</summary>
+                <summary data-i18n="fitCheck">Проверьте посадку на калибрах</summary>
                 <div>
                   <p>
-                    Для Photon Mono 4 (рабочая область
-                    <span id="printer">153,4 × 87 × 165 мм</span>) напечатайте
-                    <a href="files/stl/FitGauge.stl" download>гребёнку</a> и
-                    <a href="files/stl/FitKey.stl" download>ключ</a>. Одна, две и три насечки
-                    обозначают зазоры 0,10, 0,20 и 0,30 мм на сторону соответственно.
+                    <span data-i18n="printerVolume">Рабочая область Photon Mono 4:</span>
+                    <span id="printer">153,4 × 87 × 165 мм</span
+                    ><span data-i18n="printGauges">. Напечатайте два калибра:</span>
+                    <a data-i18n="gauge" href="files/stl/FitGauge.stl" download>Гребёнка зазоров</a>
+                    · <a data-i18n="key" href="files/stl/FitKey.stl" download>Пробная шпонка</a
+                    ><span data-i18n="clearances"
+                      >. Одна, две и три насечки обозначают зазоры 0,10, 0,20 и 0,30 мм на сторону
+                      соответственно.</span
+                    >
                   </p>
-                  <p>
+                  <p data-i18n="fitTest">
                     После промывки, сушки и досветки проверьте посадку ключом. Она зависит от смолы,
                     экспозиции и досветки: цифровая проверка габаритов не заменяет пробную печать.
                   </p>
                 </div>
               </details>
               <details>
-                <summary>Расставьте поддержки и оставьте слив</summary>
+                <summary data-i18n="supports">Расставьте поддержки и оставьте слив</summary>
                 <div>
-                  <p>
+                  <p data-i18n="supportsNote">
                     Импортируйте STL в миллиметрах без изменения масштаба. Детали ориентированы для
                     печати и стоят на Z = 0. Поддержек в файлах нет: ставьте их на скрытых
                     поверхностях. Оставьте открытыми торцы крупных секций и слив Ø4,8 мм в носу,
                     чтобы промыть и досветить полости до сборки.
                   </p>
-                  <p>
-                    Подставка полая: снизу открыты двухмиллиметровая оболочка и рёбра жёсткости.
-                    Не перекрывайте отток смолы поддержками; после печати промойте промежутки
-                    между рёбрами и карманы трёх цоколей.
+                  <p data-i18n="baseNote">
+                    Подставка полая: снизу открыты двухмиллиметровая оболочка и рёбра жёсткости. Не
+                    перекрывайте отток смолы поддержками; после печати промойте промежутки между
+                    рёбрами и карманы трёх цоколей.
                   </p>
                 </div>
               </details>
               <details>
-                <summary>Примерьте и соедините детали</summary>
+                <summary data-i18n="join">Примерьте и соедините детали</summary>
                 <div>
-                  <p>
-                    Сначала примерьте всё без клея. Перед грунтованием закройте маской цапфы,
-                    пазы и гнёзда. Склеивайте только неподвижные стыки корпуса, крыльев и киля.
+                  <p data-i18n="joinNote">
+                    Сначала примерьте всё без клея. Перед грунтованием закройте маской цапфы, пазы и
+                    гнёзда. Склеивайте только неподвижные стыки корпуса, крыльев и киля.
                   </p>
                   <ol>
-                    <li>Соедините нос, центроплан и корму.</li>
-                    <li>Установите замыкающую панель и нижний щиток.</li>
-                    <li>
-                      Присоедините крылья и киль. С каждой стороны киля вставьте штифт нижней
-                      панели тормоза в гнездо сверху вдоль оси, затем установите верхнюю панель.
-                      Снимайте в обратном порядке, раскрыв тормоз. Не заклеивайте шарниры.
+                    <li data-i18n="stepHull">Соедините нос, центроплан и корму.</li>
+                    <li data-i18n="stepAft">Установите замыкающую панель и нижний щиток.</li>
+                    <li data-i18n="stepWings">
+                      Присоедините крылья и киль. С каждой стороны киля вставьте штифт нижней панели
+                      тормоза в гнездо сверху вдоль оси, затем установите верхнюю панель. Снимайте в
+                      обратном порядке, раскрыв тормоз. Не заклеивайте шарниры.
                     </li>
-                    <li>
+                    <li data-i18n="stepDoors">
                       Приоткройте каждую створку отсека на 57° от закрытого положения. Снаружи
-                      одновременно введите обе цапфы в торцевые пазы и поверните створку до упора
-                      на 112°. Снимайте только при 57°, не отгибая щёки и не применяя клей.
+                      одновременно введите обе цапфы в торцевые пазы и поверните створку до упора на
+                      112°. Снимайте только при 57°, не отгибая щёки и не применяя клей.
                     </li>
-                    <li>
+                    <li data-i18n="stepGear">
                       Вставьте три съёмные опоры шасси в корпус, затем опустите их на цоколи
                       подставки. Оставьте посадки без клея.
                     </li>
                   </ol>
                 </div>
               </details>
-              <p class="safety">
+              <p data-i18n="safety" class="safety">
                 Со смолой и промывочной жидкостью работайте в перчатках, при вентиляции, по
                 инструкции производителя.
               </p>
@@ -361,48 +448,56 @@
         </div>
       </section>
       <section class="shell prototype" id="passport" aria-labelledby="passport-title">
-        <h2 id="passport-title">Прототип на&nbsp;ВДНХ</h2>
+        <h2 data-i18n="storyTitle" id="passport-title">Прототип на&nbsp;ВДНХ</h2>
         <div class="prototype-story">
-          <p class="story-lead">
+          <p data-i18n="storyLead" class="story-lead">
             В Москве стоит не орбитальный корабль, а полноразмерный БТС-001 для наземных испытаний.
             В космос он не летал.
           </p>
-          <p>
+          <p data-i18n="storyScale">
             В 2014 году макет перевезли из Парка Горького на ВДНХ. Для миниатюры взяли его музейный
             облик: белый верх, тёмное днище и треугольные крылья. Форму уточняли по фотографиям, а
             масштаб вывели из длины и размаха орбитера (36,4 и 24 м), не из обмера БТС-001.
           </p>
-          <p>
-            На ВДНХ торец закрыт переходом. В миниатюре показана корма до переезда: две глухие
-            чаши, овальный щит и верхний обтекатель. Лестницу не воспроизводили. Отсек с набором
-            рам и тормоз сделаны открывающимися для осмотра модели, а не как копии действующих
-            механизмов экспоната.
+          <p data-i18n="storyAft">
+            На ВДНХ торец закрыт переходом. В миниатюре показана корма до переезда: две глухие чаши,
+            овальный щит и верхний обтекатель. Лестницу не воспроизводили. Отсек с набором рам и
+            тормоз сделаны открывающимися для осмотра модели, а не как копии действующих механизмов
+            экспоната.
           </p>
           <details class="sources">
-            <summary id="sources-title">Источники реконструкции</summary>
+            <summary data-i18n="sources" id="sources-title">Источники реконструкции</summary>
             <ul>
               <li>
-                <a href="https://vdnh.ru/places/maket-kosmicheskogo-korablya-buran/"
+                <a
+                  data-i18n="sourceVDNH"
+                  href="https://vdnh.ru/places/maket-kosmicheskogo-korablya-buran/"
                   >БТС-001 на сайте ВДНХ</a
                 >
               </li>
               <li>
-                <a href="https://www.kpopov.ru/cosmos/buran_btc-001.htm"
+                <a data-i18n="sourcePhotos" href="https://www.kpopov.ru/cosmos/buran_btc-001.htm"
                   >Фотографии макета Константина Попова</a
                 >
               </li>
               <li>
-                <a href="https://rgantd.ru/news/pamyatnye-daty/neprevzoydennyy-buran/"
+                <a
+                  data-i18n="sourceDimensions"
+                  href="https://rgantd.ru/news/pamyatnye-daty/neprevzoydennyy-buran/"
                   >Размеры орбитера: «Непревзойдённый „Буран“», РГАНТД</a
                 >
               </li>
               <li>
-                <a href="https://store.anycubic.com/products/photon-mono-4"
+                <a
+                  data-i18n="sourcePrinter"
+                  href="https://store.anycubic.com/products/photon-mono-4"
                   >Характеристики Photon Mono 4</a
                 >
               </li>
               <li>
-                <a href="https://wiki.anycubic.com/mono4/photon_mono_4-en-v0.0.2.pdf#page=7"
+                <a
+                  data-i18n="sourcePDF"
+                  href="https://wiki.anycubic.com/mono4/photon_mono_4-en-v0.0.2.pdf#page=7"
                   >Руководство Photon Mono 4 (PDF, с. 7)</a
                 >
               </li>
@@ -412,13 +507,14 @@
       </section>
     </main>
     <footer class="shell footer">
-      <span>Независимая реконструкция. Не сайт ВДНХ.</span><a href="#top">Наверх</a>
+      <span data-i18n="independent">Независимая реконструкция. Не сайт ВДНХ.</span
+      ><a data-i18n="top" href="#top">Наверх</a>
     </footer>
     <div class="sr-only" id="notice" role="status"></div>
     <dialog id="exhibit-inspection" aria-labelledby="inspect-name">
       <div class="inspect-heading">
-        <strong id="inspect-name">Буран БТС-001</strong>
-        <button id="inspect-done" type="button">Готово</button>
+        <strong data-i18n="modelName" id="inspect-name">Буран БТС-001</strong>
+        <button data-i18n="done" id="inspect-done" type="button">Готово</button>
       </div>
     </dialog>
   </body>

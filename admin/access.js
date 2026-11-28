@@ -1,6 +1,7 @@
+import { msg, errorCopy } from "./copy.js";
 import { GitHubRepository } from "./repository.js";
 import { indexAt } from "./catalog.js";
-import { $, message } from "./editor.js";
+import { $, message } from "./dom.js";
 
 // Credentials never enter editor state. A closed dialog also invalidates an in-flight connection.
 export function createAccess({ connected, disconnected }) {
@@ -47,18 +48,14 @@ export function createAccess({ connected, disconnected }) {
     if (candidate || window.top !== window.self || window.opener !== null) return;
     if (!token.value.trim().startsWith("github_pat_")) {
       token.value = "";
-      message(
-        $("access-status"),
-        "Нужен fine-grained token с префиксом github_pat_.",
-        true,
-      );
+      message($("access-status"), msg("badToken"), true);
       return;
     }
     const client = new GitHubRepository(token.value.trim());
     candidate = client;
     token.value = "";
     submit.disabled = true;
-    message($("access-status"), "Проверяем доступ к fgk-corp…");
+    message($("access-status"), msg("checkingAccess"));
     try {
       await client.connect();
       if (candidate !== client) return;
@@ -74,11 +71,7 @@ export function createAccess({ connected, disconnected }) {
       client.clear();
       if (candidate === client) {
         resetForm();
-        message(
-          $("access-status"),
-          e.message || "Не удалось подключиться к GitHub.",
-          true,
-        );
+        message($("access-status"), errorCopy(e, "connectFailed"), true);
         token.focus();
       }
     }

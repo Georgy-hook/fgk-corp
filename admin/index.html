@@ -10,45 +10,56 @@
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self' https://api.github.com; base-uri 'none'; form-action 'none'; object-src 'none'"
     />
-    <title>Студия каталога — FGK Corp</title>
+    <title data-i18n="studioTitle">Студия каталога — FGK Corp</title>
     <link rel="stylesheet" href="./admin.css" />
+    <link rel="stylesheet" href="../assets/language-picker.css" />
   </head>
   <body>
-    <a class="skip" href="#editor">К редактору</a>
+    <a class="skip" href="#editor" data-i18n="skip">К редактору</a>
     <header>
       <div class="bar frame">
-        <a class="brand" href="../" aria-label="FGK Corp, на витрину"
+        <a
+          class="brand"
+          data-studio-link="../"
+          href="../"
+          data-i18n-aria-label="brandHome"
+          aria-label="FGK Corp, на витрину"
           >FGK<span>Corp</span></a
         >
-        <nav aria-label="Сервисы">
-          <a href="../">Витрина</a><button id="orders-open">Заявки</button>
+        <nav data-i18n-aria-label="services" aria-label="Сервисы">
+          <a data-studio-link="../" href="../" data-i18n="storefront">Витрина</a
+          ><button id="orders-open" data-i18n="orders">Заявки</button>
         </nav>
+        <div id="studio-language"></div>
         <button id="session" class="session">Подключить GitHub</button>
       </div>
     </header>
     <main class="frame">
       <div class="mast">
-        <h1>Студия каталога</h1>
+        <h1 data-i18n="studio">Студия каталога</h1>
         <span id="mode">Без подключения</span>
       </div>
       <div class="desk">
-        <aside class="library" aria-label="Библиотека моделей">
+        <aside class="library" data-i18n-aria-label="library" aria-label="Библиотека моделей">
           <div class="section-title">
-            <h2>Модели</h2>
+            <h2 data-i18n="models">Модели</h2>
             <span id="count" class="count">0</span>
           </div>
           <button id="new-product" class="primary full">
-            <b aria-hidden="true">＋</b> Новая модель
+            <b aria-hidden="true">＋</b>
+            <span data-i18n="newModel">Новая модель</span>
           </button>
           <label class="search"
-            >Поиск по каталогу<input
+            ><span data-i18n="search">Поиск по каталогу</span
+            ><input
               id="search"
               type="search"
+              data-i18n-placeholder="searchHint"
               placeholder="Название или адрес"
           /></label>
           <div id="library-list" class="library-list"></div>
           <div id="library-status" class="muted" role="status"></div>
-          <button id="retry-library" class="link" hidden>
+          <button id="retry-library" class="link" hidden data-i18n="refresh">
             Обновить список
           </button>
         </aside>
@@ -62,15 +73,16 @@
           </div>
           <form id="product-form" autocomplete="off" novalidate>
             <fieldset id="editor-fields">
-              <legend class="sr">Поля карточки</legend>
+              <legend class="sr" data-i18n="fields">Поля карточки</legend>
               <div class="main-fields">
                 <div class="proof">
                   <div class="proof-image">
                     <img
                       id="cover-preview"
+                      data-i18n-alt="coverAlt"
                       alt="Предпросмотр обложки"
                       hidden
-                    /><span id="cover-empty">Обложка модели</span>
+                    /><span id="cover-empty" data-i18n="coverEmpty">Обложка модели</span>
                   </div>
                   <div class="proof-caption">
                     <span id="proof-category">Без категории</span
@@ -80,58 +92,62 @@
                 </div>
                 <div class="identity">
                   <label
-                    >Название<input
+                    ><span data-i18n="name">Название</span
+                    ><input
                       id="product-name"
                       maxlength="100"
                       required
+                      data-i18n-placeholder="nameHint"
                       placeholder="Например, Буран БТС-001"
                   /></label>
                   <label
-                    >Категория<input
+                    ><span data-i18n="category">Категория</span
+                    ><input
                       id="product-category"
                       maxlength="60"
                       list="categories"
                       required
-                      placeholder="Космонавтика" /><datalist
-                      id="categories"
-                    ></datalist
+                      data-i18n-placeholder="categoryHint"
+                      placeholder="Космонавтика" /><datalist id="categories"></datalist
                   ></label>
                   <label
-                    >Адрес карточки<input
+                    ><span data-i18n="slug">Адрес карточки</span
+                    ><input
                       id="product-slug"
                       maxlength="64"
                       autocapitalize="none"
                       spellcheck="false"
                       required
                       placeholder="buran-bts-001"
-                    /><small
-                      >Латиница, цифры и дефисы. После публикации адрес не
-                      меняется.</small
+                    /><small data-i18n="slugHelp"
+                      >Латиница, цифры и дефисы. После публикации адрес не меняется.</small
                     ></label
                   >
                 </div>
               </div>
               <label class="description"
-                >Описание<textarea
+                ><span data-i18n="description">Описание</span
+                ><textarea
                   id="product-description"
                   rows="3"
                   maxlength="2500"
                   required
+                  data-i18n-placeholder="descriptionHint"
                   placeholder="Что входит в комплект и чем интересна модель?"
                 ></textarea>
               </label>
               <section class="work-section">
-                <h3>Медиа и файлы</h3>
-                <p>
-                  Перетащите файлы в нужное поле или выберите с устройства. До
-                  128 МиБ новых файлов за публикацию.
+                <h3 data-i18n="media">Медиа и файлы</h3>
+                <p data-i18n="mediaHelp">
+                  Перетащите файлы в нужное поле или выберите с устройства. До 128 МиБ новых файлов
+                  за публикацию.
                 </p>
                 <div id="upload-groups" class="uploads"></div>
               </section>
               <section class="work-section">
                 <div class="section-title">
-                  <h3>Варианты окраса</h3>
-                  <button type="button" id="add-color" class="link">
+                  <h3 data-i18n="colors">Варианты окраса</h3>
+                  <button type="button" id="add-color" class="link" data-i18n="addColor">
                     + Добавить цвет
                   </button>
                 </div>
@@ -139,8 +155,8 @@
               </section>
               <section class="work-section">
                 <div class="section-title">
-                  <h3>Характеристики</h3>
-                  <button type="button" id="add-detail" class="link">
+                  <h3 data-i18n="details">Характеристики</h3>
+                  <button type="button" id="add-detail" class="link" data-i18n="addDetail">
                     + Добавить пару
                   </button>
                 </div>
@@ -148,19 +164,19 @@
               </section>
             </fieldset>
             <section class="review" aria-labelledby="review-title">
-              <h3 id="review-title">Перед публикацией</h3>
+              <h3 id="review-title" data-i18n="review">Перед публикацией</h3>
               <ul id="readiness"></ul>
-              <p class="muted">
-                Черновики и файлы остаются в этой вкладке при переключении
-                моделей. После её закрытия они будут потеряны.
+              <p class="muted" data-i18n="draftHelp">
+                Черновики и файлы остаются в этой вкладке при переключении моделей. После её
+                закрытия они будут потеряны.
               </p>
               <div class="actions">
                 <button id="publish-product" type="submit" class="primary">
                   Продолжить с GitHub</button
-                ><button id="reload-product" type="button" hidden>
+                ><button id="reload-product" type="button" hidden data-i18n="reload">
                   Перечитать из main
                 </button>
-                <button type="button" id="discard" hidden>
+                <button type="button" id="discard" hidden data-i18n="discard">
                   Сбросить черновик
                 </button>
               </div>
@@ -171,6 +187,7 @@
                   href="https://github.com/Georgy-hook/fgk-corp/actions/workflows/pages.yml"
                   target="_blank"
                   rel="noreferrer"
+                  data-i18n="pages"
                   >Статус сборки Pages ↗</a
                 >
               </div>
@@ -181,12 +198,14 @@
     </main>
     <dialog id="access-dialog" aria-labelledby="access-title">
       <div class="section-title">
-        <h2 id="access-title">Доступ к GitHub</h2>
-        <button class="close" id="access-close" aria-label="Закрыть">×</button>
+        <h2 id="access-title" data-i18n="access">Доступ к GitHub</h2>
+        <button class="close" id="access-close" data-i18n-aria-label="close" aria-label="Закрыть">
+          ×
+        </button>
       </div>
-      <p>
-        Для записи в <strong>Georgy-hook/fgk-corp</strong> нужен короткоживущий
-        fine-grained token. Подключение само по себе ничего не публикует.
+      <p data-i18n="accessHelp">
+        Для записи в Georgy-hook/fgk-corp нужен короткоживущий fine-grained token. Подключение само
+        по себе ничего не публикует.
       </p>
       <ol>
         <li>
@@ -194,26 +213,30 @@
             href="https://github.com/settings/personal-access-tokens/new?name=FGK+Catalog&amp;target_name=Georgy-hook&amp;expires_in=1&amp;contents=write"
             target="_blank"
             rel="noreferrer"
-            >Создайте ключ на GitHub ↗</a
+            data-i18n="createToken"
+            >Создайте ключ на GitHub на один день ↗</a
           >
-          со сроком на один день.
         </li>
-        <li>
-          В <strong>Only select repositories</strong> выберите только
-          <strong>fgk-corp</strong>.
-        </li>
-        <li>
-          Разрешите только <strong>Contents: Read and write</strong>. Metadata
-          доступно для чтения автоматически.
+        <li data-i18n="repoScope">В Only select repositories выберите только fgk-corp.</li>
+        <li data-i18n="permissions">
+          Разрешите только Contents: Read and write. Metadata доступно для чтения автоматически.
         </li>
       </ol>
       <p id="access-separate" hidden>
-        Ключ вводится только в отдельно открытой студии.
-        <a href="./" target="_blank" rel="noopener noreferrer">Открыть студию в отдельной вкладке</a>
+        <span data-i18n="separate">Ключ вводится только в отдельно открытой студии.</span>
+        <a
+          data-studio-link="./"
+          href="./"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-i18n="openStudio"
+          >Открыть студию в отдельной вкладке</a
+        >
       </p>
-      <form id="access-form" autocomplete="off">
+      <form id="access-form" autocomplete="off" novalidate>
         <label
-          >Ключ GitHub<input
+          ><span data-i18n="key">Ключ GitHub</span
+          ><input
             id="access-token"
             type="password"
             autocomplete="off"
@@ -221,27 +244,29 @@
             spellcheck="false"
             placeholder="github_pat_…"
             required /></label
-        ><small
-          >Только в памяти вкладки. Кнопка «Выйти» забывает ключ, но оставляет
-          черновики.</small
-        ><button type="submit" class="primary">Подключить</button>
+        ><small data-i18n="keyHelp"
+          >Только в памяти вкладки. Кнопка «Выйти» забывает ключ, но оставляет черновики.</small
+        ><button type="submit" class="primary" data-i18n="connect">Подключить</button>
         <p id="access-status" role="status"></p>
       </form>
     </dialog>
     <dialog id="orders-dialog" aria-labelledby="orders-title">
       <div class="section-title">
-        <h2 id="orders-title">Заявки и уведомления</h2>
-        <button id="orders-close" class="close" aria-label="Закрыть">×</button>
+        <h2 id="orders-title" data-i18n="ordersTitle">Заявки и уведомления</h2>
+        <button id="orders-close" class="close" data-i18n-aria-label="close" aria-label="Закрыть">
+          ×
+        </button>
       </div>
-      <p>
-        Контакты покупателей и адрес получателя доступны только после входа в
-        проект <strong>fgk-corp-orders</strong> на Netlify.
+      <p data-i18n="ordersHelp">
+        Контакты покупателей и адрес получателя доступны только после входа в проект fgk-corp-orders
+        на Netlify.
       </p>
       <p>
         <a
           href="https://app.netlify.com/projects/fgk-corp-orders/forms"
           target="_blank"
           rel="noreferrer"
+          data-i18n="openOrders"
           >Открыть заявки в Netlify ↗</a
         >
       </p>
@@ -250,13 +275,13 @@
           href="https://app.netlify.com/projects/fgk-corp-orders/configuration/notifications#form-submission-notifications"
           target="_blank"
           rel="noreferrer"
+          data-i18n="changeEmail"
           >Изменить почту уведомлений ↗</a
         >
       </p>
-      <small
-        >В Form submission notifications измените адрес в существующем
-        email-уведомлении формы. Новый адрес может потребовать
-        подтверждения.</small
+      <small data-i18n="emailHelp"
+        >В Form submission notifications измените адрес в существующем email-уведомлении формы.
+        Новый адрес может потребовать подтверждения.</small
       >
     </dialog>
     <script type="module" src="./admin.js"></script>

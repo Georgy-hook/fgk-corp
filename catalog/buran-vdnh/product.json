@@ -19,5 +19,67 @@
     { "label": "Размер в сборке", "value": "255 × 167 × 126 мм" },
     { "label": "Комплект", "value": "18 деталей и 2 калибра" }
   ],
-  "gallery": ["assets/cockpit.webp", "assets/fin.webp", "assets/gear.webp"]
+  "gallery": ["assets/cockpit.webp", "assets/fin.webp", "assets/gear.webp"],
+  "i18n": {
+    "kk": {
+      "name": "«Буран» БТС-001",
+      "description": "ВДНХ-дағы сынақ макетінің кішірейтілген үлгісі. Жүк бөлімі мен әуе тежегіші ашылады. Модельдің астыңғы жағын көру үшін шассиді шешуге болады.",
+      "category": "Ғарышкерлік",
+      "colors": { "Музейный": "Музейдегі нұсқа", "Песочный": "Құм түсті", "Серый": "Сұр" },
+      "details": {
+        "Масштаб": { "label": "Масштаб", "value": "1:144" },
+        "Размер в сборке": { "label": "Жиналғандағы өлшемі", "value": "255 × 167 × 126 мм" },
+        "Комплект": { "label": "Жинақ құрамы", "value": "18 бөлшек және 2 калибр" }
+      },
+      "stl": { "files/Buran-STL.zip": "STL файлдар жинағы" }
+    },
+    "en": {
+      "name": "Buran BTS-001",
+      "description": "A scale model of the test vehicle on display at VDNKh. The payload bay and air brake open, and the landing gear comes off for a closer look at the underside.",
+      "category": "Spaceflight",
+      "colors": { "Музейный": "Museum livery", "Песочный": "Sand", "Серый": "Grey" },
+      "details": {
+        "Масштаб": { "label": "Scale", "value": "1:144" },
+        "Размер в сборке": { "label": "Assembled dimensions", "value": "255 × 167 × 126 mm" },
+        "Комплект": { "label": "In the kit", "value": "18 parts and 2 gauges" }
+      },
+      "stl": { "files/Buran-STL.zip": "STL file set" }
+    },
+    "be": {
+      "name": "«Буран» БТС-001",
+      "description": "Маштабная мадэль выпрабавальнага макета з ВДНГ. Грузавы адсек і паветраны тормаз адкрываюцца, а шасі можна зняць, каб агледзець мадэль знізу.",
+      "category": "Касманаўтыка",
+      "colors": { "Музейный": "Музейная афарбоўка", "Песочный": "Пясочны", "Серый": "Шэры" },
+      "details": {
+        "Масштаб": { "label": "Маштаб", "value": "1:144" },
+        "Размер в сборке": { "label": "Памеры ў сабраным выглядзе", "value": "255 × 167 × 126 мм" },
+        "Комплект": { "label": "Камплект", "value": "18 дэталяў і 2 калібры" }
+      },
+      "stl": { "files/Buran-STL.zip": "Камплект файлаў STL" }
+    },
+    "uz": {
+      "name": "Buran BTS-001",
+      "description": "VDNXda namoyish etiladigan sinov maketining kichraytirilgan modeli. Yuk bo‘lmasi va havo tormozi ochiladi. Modelning pastki qismini ko‘rish uchun shassini yechish mumkin.",
+      "category": "Kosmonavtika",
+      "colors": { "Музейный": "Muzeydagi rang", "Песочный": "Qumrang", "Серый": "Kulrang" },
+      "details": {
+        "Масштаб": { "label": "Masshtab", "value": "1:144" },
+        "Размер в сборке": { "label": "Yig‘ilgan holdagi o‘lchami", "value": "255 × 167 × 126 mm" },
+        "Комплект": { "label": "To‘plam tarkibi", "value": "18 ta detal va 2 ta kalibr" }
+      },
+      "stl": { "files/Buran-STL.zip": "STL fayllar to‘plami" }
+    },
+    "hy": {
+      "name": "«Բուրան» ԲՏՍ-001",
+      "description": "ԺՏՆՑ-ում ցուցադրվող փորձարկման մակետի փոքրացված մոդելն է։ Բեռնախցիկն ու օդային արգելակը բացվում են, իսկ շասսին կարելի է հանել՝ մոդելի ստորին կողմը զննելու համար։",
+      "category": "Տիեզերագնացություն",
+      "colors": { "Музейный": "Թանգարանային գունավորում", "Песочный": "Ավազագույն", "Серый": "Մոխրագույն" },
+      "details": {
+        "Масштаб": { "label": "Մասշտաբ", "value": "1:144" },
+        "Размер в сборке": { "label": "Հավաքված մոդելի չափսերը", "value": "255 × 167 × 126 մմ" },
+        "Комплект": { "label": "Հավաքածուի կազմը", "value": "18 մաս և 2 տրամաչափիչ" }
+      },
+      "stl": { "files/Buran-STL.zip": "STL ֆայլերի հավաքածու" }
+    }
+  }
 }

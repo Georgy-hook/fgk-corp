@@ -1,14 +1,9 @@
+import { msg, StudioError } from "./copy.js";
 import { validSlug, buildDocument } from "./product.js";
 const indexPath = "catalog/index.json";
 function slugsOf(value) {
-  if (
-    !Array.isArray(value) ||
-    !value.every(validSlug) ||
-    new Set(value).size !== value.length
-  )
-    throw new Error(
-      "Проверьте catalog/index.json: адреса должны быть допустимыми и уникальными.",
-    );
+  if (!Array.isArray(value) || !value.every(validSlug) || new Set(value).size !== value.length)
+    throw new StudioError(msg("badIndex"));
   return value;
 }
 async function getPublic(path) {
@@ -17,14 +12,11 @@ async function getPublic(path) {
     credentials: "omit",
     redirect: "error",
   });
-  if (!res.ok)
-    throw new Error(
-      "Не удалось прочитать публичный каталог. Проверьте сеть и повторите.",
-    );
+  if (!res.ok) throw new StudioError(msg("publicError"));
   return res.json();
 }
 export async function publicProduct(slug) {
-  if (!validSlug(slug)) throw new Error("Недопустимый адрес карточки.");
+  if (!validSlug(slug)) throw new StudioError(msg("badSlug"));
   return getPublic(`${slug}/product.json`);
 }
 export async function publicCatalog() {
@@ -67,17 +59,9 @@ export async function indexAt(repo, snapshot) {
   return { ordered, all: [...new Set([...ordered, ...extra.sort()])] };
 }
 export async function readProduct(repo, snapshot, slug) {
-  const file = await repo.readJsonFile(
-    snapshot,
-    `catalog/${slug}/product.json`,
-  );
-  if (
-    !file.exists ||
-    !file.value ||
-    typeof file.value !== "object" ||
-    Array.isArray(file.value)
-  )
-    throw new Error("В выбранной папке main нет карточки product.json.");
+  const file = await repo.readJsonFile(snapshot, `catalog/${slug}/product.json`);
+  if (!file.exists || !file.value || typeof file.value !== "object" || Array.isArray(file.value))
+    throw new StudioError(msg("noRecord"));
   return file;
 }
 export function trackMedia(draft, snapshot) {
@@ -90,14 +74,11 @@ export function trackMedia(draft, snapshot) {
     ...(base.stl ?? []).map((x) => x.file),
   ].filter(Boolean);
   draft.mediaVersion = new Map(
-    paths.map((path) => [
-      path,
-      snapshot.files.get(`catalog/${draft.slug}/${path}`)?.sha,
-    ]),
+    paths.map((path) => [path, snapshot.files.get(`catalog/${draft.slug}/${path}`)?.sha]),
   );
 }
 export async function publish(repo, d, progress) {
-  progress("Проверяем карточку в текущей версии main…");
+  progress(msg("checkMain"));
   const snapshot = await repo.getSnapshot();
   const { ordered, all } = await indexAt(repo, snapshot);
   const root = `catalog/${d.slug}/`,
@@ -107,21 +88,15 @@ export async function publish(repo, d, progress) {
     // Before signing in we have published metadata, not a Git SHA. Compare the complete base document.
     if (
       !current.exists ||
-      (d.sha
-        ? d.sha !== current.sha
-        : JSON.stringify(current.value) !== JSON.stringify(d.base))
+      (d.sha ? d.sha !== current.sha : JSON.stringify(current.value) !== JSON.stringify(d.base))
     )
-      throw new Error(
-        "Карточка изменилась в main. Черновик сохранён. Сверьте изменения и перечитайте версию из main.",
-      );
+      throw new StudioError(msg("conflict"));
   } else if (
     current.exists ||
     all.includes(d.slug) ||
     [...snapshot.files.keys()].some((p) => p.startsWith(root))
   ) {
-    throw new Error(
-      "Адрес или папка в main уже заняты. Выберите другой адрес.",
-    );
+    throw new StudioError(msg("folderTaken"));
   }
   const { value, assets } = buildDocument(d, new Set(snapshot.files.keys()));
   // When switching an existing reference, also protect edits to the file itself.
@@ -132,21 +107,13 @@ export async function publish(repo, d, progress) {
     ...value.stl.map((x) => x.file),
   ]);
   const newPaths = new Set(assets.map((asset) => asset.path));
-  for (const ref of [
-    ...retained,
-    value.viewer?.split("?")[0],
-    value.exhibit,
-  ].filter(Boolean)) {
+  for (const ref of [...retained, value.viewer?.split("?")[0], value.exhibit].filter(Boolean)) {
     if (!newPaths.has(root + ref) && !snapshot.files.has(root + ref))
-      throw new Error(
-        "В main не хватает файла текущей карточки. Проверьте комплект до публикации.",
-      );
+      throw new StudioError(msg("missingMedia"));
   }
   for (const [ref, sha] of d.mediaVersion ?? []) {
     if (!retained.has(ref) && snapshot.files.get(root + ref)?.sha !== sha)
-      throw new Error(
-        "Один из заменяемых файлов изменился в main. Перечитайте версию карточки.",
-      );
+      throw new StudioError(msg("mediaConflict"));
   }
   const changes = [...assets];
   const json = (p, doc) => ({

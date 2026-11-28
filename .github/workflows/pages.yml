@@ -22,9 +22,9 @@ jobs:
       - name: Validate and assemble the site
         run: |
           set -eu
-          for script in assets/*.js admin/*.js; do
-            node --input-type=module --check < "$script"
-          done
+          find assets admin catalog -type f -name '*.js' ! -path '*/vendor/*' -exec sh -ec '
+            for script do node --input-type=module --check < "$script"; done
+          ' sh {} +
           mkdir _site
           cp -R index.html assets admin vendor _site/
           python3 scripts/check-catalog.py --site-catalog _site/catalog

@@ -106,10 +106,31 @@ def asset(folder, value, extensions, *, allow_query=False):
     validate_media(path)
 
 
+def check_translations(product, slug):
+    """Presentation overrides are optional; filenames, slugs and order values always come from the source."""
+    translations = product.get("i18n", {})
+    require(isinstance(translations, dict), f"{slug}: i18n must be an object")
+    for locale, fields in translations.items():
+        where = f"{slug}: i18n.{locale}"
+        require(isinstance(fields, dict), f"{where} must be an object")
+        for field in ("name", "description", "category"):
+            require(field not in fields or isinstance(fields[field], str), f"{where}.{field} must be text")
+        for field in ("colors", "stl"):
+            labels = fields.get(field, {})
+            require(isinstance(labels, dict) and all(isinstance(v, str) for v in labels.values()),
+                    f"{where}.{field} must map source keys to labels")
+        details = fields.get("details", {})
+        require(isinstance(details, dict), f"{where}.details must map specification labels to translations")
+        for entry in details.values():
+            require(isinstance(entry, dict) and all(isinstance(v, str) for v in entry.values()),
+                    f"{where}.details entries must contain text")
+
+
 def check_product(slug, folder):
     product = read_json(folder / "product.json")
     for field in ("name", "category", "description"):
         require(text(product, field), f"{slug}: missing {field}")
+    check_translations(product, slug)
     for field in ("gallery", "stl", "colors", "details"):
         require(isinstance(product.get(field, []), list), f"{slug}: {field} must be an array")
     asset(folder, product.get("image"), IMAGES)

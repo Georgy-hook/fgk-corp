@@ -1,3 +1,5 @@
+import { msg, StudioError } from "./copy.js";
+
 // Quick checks before the first authenticated request. The Pages build additionally
 // checks ZIP members, GLB resources and all referenced assets, including existing ones.
 const checked = new WeakSet();
@@ -37,15 +39,11 @@ async function checkFile(file) {
       break;
     case "stl":
       ok =
-        (bytes.length > 84 &&
-          84 + 50 * view.getUint32(80, true) === file.size) ||
+        (bytes.length > 84 && 84 + 50 * view.getUint32(80, true) === file.size) ||
         (/^\s*solid/i.test(header) && /facet/i.test(header));
       break;
   }
-  if (!ok)
-    throw new Error(
-      `Содержимое «${file.name}» не соответствует формату ${ext.toUpperCase()}. Уберите файл и выберите исправленный.`,
-    );
+  if (!ok) throw new StudioError(msg("badContent", { name: file.name, format: ext.toUpperCase() }));
   checked.add(file);
 }
 export async function checkUploads(files) {

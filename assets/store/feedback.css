@@ -1,0 +1,132 @@
+/* Interaction cues follow a deliberate action. A stationary model never animates just for decoration. */
+.masthead nav a {
+  position: relative;
+}
+.masthead nav a::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 5px;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.masthead nav a[aria-current='location']::after {
+  transform: scaleX(1);
+}
+.card-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32em;
+}
+.card-open::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  mask: url('../icons/arrow-up-right.svg') center / contain no-repeat;
+}
+#scene-language {
+  display: none;
+}
+#inspection-dialog #scene-language {
+  display: block;
+  margin-inline-start: auto;
+}
+.scene-heading {
+  gap: 0.5rem;
+}
+#inspection-dialog .scene-heading strong {
+  min-width: 0;
+  font-size: clamp(0.86rem, 3.4vw, 1rem);
+}
+.plate-action {
+  max-width: calc(100% - 1.5rem);
+}
+.plate[data-buran-detail] .poster {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gallery a {
+  min-width: 0;
+}
+.gallery a span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+#order-title {
+  text-wrap: balance;
+}
+.masthead-inner > nav {
+  flex: none;
+}
+@media (max-width: 43.75rem) {
+  .masthead-inner {
+    column-gap: clamp(0.4rem, 2vw, 1rem);
+  }
+  .masthead nav {
+    gap: clamp(0.35rem, 1.6vw, 0.8rem);
+  }
+}
+@media (max-width: 24rem) {
+  .masthead-inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.35rem;
+    padding-block: 0.3rem;
+  }
+  .masthead nav {
+    margin: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 0.45rem;
+  }
+  #site-language {
+    justify-self: end;
+  }
+  .masthead nav a {
+    font-size: 0.82rem;
+  }
+  .masthead .brand {
+    font-size: 1.18rem;
+    gap: 0.22rem;
+  }
+  .masthead .brand svg {
+    width: 23px;
+  }
+  .configuration {
+    align-items: start;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .masthead nav a::after,
+  .card-open::after {
+    transition: transform 150ms ease-out;
+  }
+  .product-card:is(:hover, :focus-visible) .card-open::after {
+    transform: translate(2px, -2px);
+  }
+  .color-swatch::before {
+    transition: border-color 130ms ease-out;
+  }
+  .gallery a,
+  .plate-action,
+  .button {
+    transition:
+      border-color 130ms ease-out,
+      background-color 130ms ease-out;
+  }
+  #inspection-dialog[open] {
+    animation: fgk-inspect-in 160ms ease-out;
+  }
+  @keyframes fgk-inspect-in {
+    from {
+      opacity: 0.35;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

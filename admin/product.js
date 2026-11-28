@@ -1,3 +1,5 @@
+import { msg, StudioError } from "./copy.js";
+
 // A draft contains only product data. Existing references stay intact unless the editor removes them.
 export const validSlug = (value) =>
   typeof value === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
@@ -53,39 +55,28 @@ export function imageUrl(slug, path) {
     typeof path !== "string" ||
     !path
       .split("/")
-      .every(
-        (part) =>
-          /^[\p{L}\p{N}_.-]+$/u.test(part) && ![".", ".."].includes(part),
-      )
+      .every((part) => /^[\p{L}\p{N}_.-]+$/u.test(part) && ![".", ".."].includes(part))
   )
     return "";
   return `../catalog/${slug}/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 export const groups = {
   cover: {
-    title: "Обложка",
-    hint: "JPG, PNG, WebP, AVIF · до 10 МБ",
     accept: ".jpg,.jpeg,.png,.webp,.avif",
     limit: 1,
     mb: 10,
   },
   gallery: {
-    title: "Галерея",
-    hint: "Несколько изображений · до 10 МБ каждое",
     accept: ".jpg,.jpeg,.png,.webp,.avif",
     limit: 24,
     mb: 10,
   },
   downloads: {
-    title: "Файлы для печати",
-    hint: "До 64 STL или ZIP, по 70 МиБ на файл",
     accept: ".stl,.zip",
     limit: 64,
     mb: 70,
   },
   glb: {
-    title: "3D-просмотр",
-    hint: "Самодостаточная сборка GLB, до 70 МиБ",
     accept: ".glb",
     limit: 1,
     mb: 70,
@@ -94,28 +85,19 @@ export const groups = {
 export function draftFrom(slug = "", base = null, sha = null) {
   const p = structuredClone(base ?? {});
   const text = (value) => typeof value === "string";
-  const rows = (key, valid) =>
-    !(key in p) || (Array.isArray(p[key]) && p[key].every(valid));
+  const rows = (key, valid) => !(key in p) || (Array.isArray(p[key]) && p[key].every(valid));
   if (
     typeof p !== "object" ||
     Array.isArray(p) ||
-    [
-      "name",
-      "category",
-      "description",
-      "image",
-      "viewer",
-      "exhibit",
-      "glb",
-    ].some((key) => key in p && !text(p[key])) ||
+    ["name", "category", "description", "image", "viewer", "exhibit", "glb"].some(
+      (key) => key in p && !text(p[key]),
+    ) ||
     !rows("gallery", text) ||
     !rows("stl", (x) => text(x?.file) && text(x?.label)) ||
     !rows("colors", (x) => text(x?.name) && text(x?.hex)) ||
     !rows("details", (x) => text(x?.label) && text(x?.value))
   )
-    throw new Error(
-      "Формат полей product.json не поддерживается. Карточка не открыта для записи.",
-    );
+    throw new StudioError(msg("formatError"));
   return {
     slug,
     base,
@@ -136,32 +118,25 @@ export function draftFrom(slug = "", base = null, sha = null) {
   };
 }
 export function filesOf(d) {
-  return Object.keys(groups).flatMap((k) =>
-    d[k].map((x) => x.file).filter(Boolean),
-  );
+  return Object.keys(groups).flatMap((k) => d[k].map((x) => x.file).filter(Boolean));
 }
 export function attach(d, key, newFiles) {
   const g = groups[key];
   if (!newFiles.length) return;
   if ((g.limit === 1 ? 0 : d[key].length) + newFiles.length > g.limit)
-    throw new Error(`В поле «${g.title}» допустимо файлов: ${g.limit}.`);
+    throw new StudioError(msg("fileLimit", { group: msg(key), limit: g.limit }));
   for (const file of newFiles) {
-    if (
-      !g.accept.split(",").some((ext) => file.name.toLowerCase().endsWith(ext))
-    )
-      throw new Error(`«${file.name}»: нужен файл ${g.accept}.`);
+    if (!g.accept.split(",").some((ext) => file.name.toLowerCase().endsWith(ext)))
+      throw new StudioError(msg("fileType", { name: file.name, types: g.accept }));
     if (!file.size || file.size > g.mb * 1024 ** 2)
-      throw new Error(`«${file.name}»: нужен непустой файл до ${g.mb} МБ.`);
+      throw new StudioError(msg("fileSize", { name: file.name, limit: g.mb }));
     if (g.limit !== 1 && d[key].some((x) => x.file?.name === file.name))
-      throw new Error(`«${file.name}» уже выбран.`);
+      throw new StudioError(msg("duplicate", { name: file.name }));
   }
   const items = newFiles.map((file) => ({ file }));
   const next = g.limit === 1 ? items : [...d[key], ...items];
-  if (
-    filesOf({ ...d, [key]: next }).reduce((n, f) => n + f.size, 0) >
-    128 * 1024 ** 2
-  )
-    throw new Error("Общий размер новых файлов превышает 128 МиБ.");
+  if (filesOf({ ...d, [key]: next }).reduce((n, f) => n + f.size, 0) > 128 * 1024 ** 2)
+    throw new StudioError(msg("totalSize"));
   d[key] = next;
   if (key === "cover") {
     releasePreview(d);
@@ -174,19 +149,13 @@ export function releasePreview(d) {
 }
 export function readiness(d, existing) {
   const errors = [];
-  if (!d.name.trim()) errors.push(["Введите название.", "product-name"]);
-  if (!validSlug(d.slug))
-    errors.push(["Задайте адрес: латиница, цифры и дефисы.", "product-slug"]);
-  else if (!d.base && existing.has(d.slug))
-    errors.push(["Адрес уже занят. Выберите другой.", "product-slug"]);
-  if (!d.category.trim())
-    errors.push(["Укажите категорию.", "product-category"]);
-  if (!d.description.trim())
-    errors.push(["Добавьте описание.", "product-description"]);
-  if (!d.cover.length && !d.base?.image)
-    errors.push(["Добавьте обложку.", "file-cover"]);
-  if (!d.downloads.length)
-    errors.push(["Добавьте STL или ZIP для скачивания.", "file-downloads"]);
+  if (!d.name.trim()) errors.push([msg("needName"), "product-name"]);
+  if (!validSlug(d.slug)) errors.push([msg("needSlug"), "product-slug"]);
+  else if (!d.base && existing.has(d.slug)) errors.push([msg("slugTaken"), "product-slug"]);
+  if (!d.category.trim()) errors.push([msg("needCategory"), "product-category"]);
+  if (!d.description.trim()) errors.push([msg("needDescription"), "product-description"]);
+  if (!d.cover.length && !d.base?.image) errors.push([msg("needCover"), "file-cover"]);
+  if (!d.downloads.length) errors.push([msg("needDownloads"), "file-downloads"]);
   if (
     d.downloads.length &&
     !d.base?.viewer &&
@@ -194,24 +163,19 @@ export function readiness(d, existing) {
     !d.glb.length &&
     !d.downloads.some((x) => /\.stl$/i.test(x.file?.name ?? x.ref.file))
   )
-    errors.push([
-      "Для архива ZIP нужен GLB или отдельный STL для 3D-просмотра.",
-      "file-glb",
-    ]);
+    errors.push([msg("needPreview"), "file-glb"]);
   if (d.colors.some((c) => !c.name.trim() || !/^#[0-9a-f]{6}$/i.test(c.hex)))
-    errors.push(["Укажите названия и цвета всех окрасов.", "colors"]);
+    errors.push([msg("needColors"), "colors"]);
   if (d.details.some((c) => !c.label.trim() || !c.value.trim()))
-    errors.push(["Заполните обе части каждой характеристики.", "details"]);
+    errors.push([msg("needPairs"), "details"]);
   return errors;
 }
 export function previewNote(d) {
-  if (d.base?.viewer) return "Сохранена авторская 3D-сцена.";
-  if (d.glb.length || d.base?.glb) return "Предпросмотр: модель GLB.";
+  if (d.base?.viewer) return msg("customScene");
+  if (d.glb.length || d.base?.glb) return msg("glbPreview");
   if (d.downloads.some((x) => /\.stl$/i.test(x.file?.name ?? x.ref.file)))
-    return d.downloads.length > 1
-      ? "Предпросмотр отдельной детали. Для сборки добавьте GLB."
-      : "Предпросмотр: отдельный STL.";
-  return "3D-просмотр не выбран.";
+    return d.downloads.length > 1 ? msg("partPreview") : msg("stlPreview");
+  return msg("noPreview");
 }
 export function buildDocument(d, occupied) {
   const value = {
@@ -228,8 +192,7 @@ export function buildDocument(d, occupied) {
       name = slugify(file.name.slice(0, -ext.length - 1)) || "model";
     const stem = `${dir}/${name}`;
     let path = `${stem}.${ext}`;
-    for (let n = 2; occupied.has(`catalog/${d.slug}/${path}`); n++)
-      path = `${stem}-${n}.${ext}`;
+    for (let n = 2; occupied.has(`catalog/${d.slug}/${path}`); n++) path = `${stem}-${n}.${ext}`;
     occupied.add(`catalog/${d.slug}/${path}`);
     assets.push({ path: `catalog/${d.slug}/${path}`, file });
     return path;

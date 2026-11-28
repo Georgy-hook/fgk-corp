@@ -10,8 +10,14 @@
     />
     <title>FGK Corp — мастерская масштабных моделей</title>
     <link rel="stylesheet" href="assets/store.css" />
+    <link rel="stylesheet" href="assets/store/model.css" />
+    <link rel="stylesheet" href="assets/store/catalog.css" />
+    <link rel="stylesheet" href="assets/store/responsive.css" />
+    <link rel="stylesheet" href="assets/store/inspection.css" />
     <link rel="stylesheet" href="assets/viewer.css" />
     <link rel="stylesheet" href="assets/orders.css" />
+    <link rel="stylesheet" href="assets/language-picker.css" />
+    <link rel="stylesheet" href="assets/store/feedback.css" />
     <script type="module" src="assets/orders.js"></script>
     <script type="module" src="assets/store.js"></script>
   </head>
@@ -23,56 +29,40 @@
           d="M2 30 13 5h23l-3.2 7.4H19l-2.1 4.8h11.9l-3.1 7.2H13.8L11.2 30Zm12.5 0 1.4-3.3h8.7L23.2 30Z"
         />
       </symbol>
-      <symbol id="cube" viewBox="0 0 24 24">
-        <path d="m12 2 9 5v10l-9 5-9-5V7zm0 10 9-5M3 7l9 5v10" />
-      </symbol>
-      <symbol id="search-icon" viewBox="0 0 24 24">
-        <circle cx="10" cy="10" r="6.5" />
-        <path d="m15 15 5.5 5.5" />
-      </symbol>
     </svg>
-    <a href="#catalog" class="skip-link">Перейти к каталогу</a>
+    <a href="#catalog" class="skip-link" data-i18n="skip">Перейти к каталогу</a>
     <header class="masthead">
       <div class="shell masthead-inner">
-        <a class="brand" href="./" aria-label="FGK Corp, на главную"
+        <a class="brand" href="./" aria-label="FGK Corp, на главную" data-i18n-aria-label="home"
           ><svg aria-hidden="true"><use href="#mark" /></svg>FGK Corp</a
         >
-        <span class="masthead-note">Мастерская масштабных моделей</span>
-        <nav aria-label="Основная навигация">
-          <a href="#catalog">Каталог</a><a href="#order">Заявка</a>
+        <span class="masthead-note" data-i18n="workshop">Мастерская масштабных моделей</span>
+        <nav aria-label="Основная навигация" data-i18n-aria-label="nav">
+          <a href="#catalog" data-i18n="catalog">Каталог</a>
+          <a href="#order" data-i18n="order">Заявка</a>
         </nav>
+        <div id="site-language"></div>
       </div>
     </header>
     <main>
-      <div
-        id="selection-notice"
-        class="shell notice"
-        role="status"
-        hidden
-      ></div>
-      <section
-        class="shell object"
-        id="model-explorer"
-        aria-labelledby="model-title"
-      >
+      <div id="selection-notice" class="shell notice" role="status" hidden></div>
+      <section class="shell object" id="model-explorer" aria-labelledby="model-title">
         <div class="object-layout">
           <div class="object-intro">
             <p class="breadcrumb">
-              <a href="#catalog">Каталог</a><span aria-hidden="true">/</span
+              <a href="#catalog" data-i18n="catalog">Каталог</a><span aria-hidden="true">/</span
               ><span id="model-category">Космонавтика</span>
             </p>
             <h1 id="model-title" tabindex="-1">Буран БТС-001</h1>
             <p id="model-description" class="description">
-              Масштабная модель испытательного макета с ВДНХ. Грузовой отсек и
-              воздушный тормоз раскрываются, а шасси снимается для осмотра
-              днища.
+              Масштабная модель испытательного макета с ВДНХ. Грузовой отсек и воздушный тормоз
+              раскрываются, а шасси снимается для осмотра днища.
             </p>
           </div>
           <div class="studio" id="studio">
             <figure class="plate" id="plate" data-buran-overview>
               <figcaption class="plate-label">
-                <span id="shot-name">Общий вид</span
-                ><span id="shot-index">01 / 04</span>
+                <span id="shot-name">Общий вид</span><span id="shot-index">01 / 04</span>
               </figcaption>
               <img
                 id="model-poster"
@@ -88,6 +78,7 @@
               <a
                 class="plate-action"
                 id="scene-fallback"
+                data-i18n="openExhibit"
                 href="catalog/buran-vdnh/"
                 >Открыть экспозицию</a
               >
@@ -98,13 +89,14 @@
                 aria-controls="scene-block"
                 hidden
               >
-                <svg class="icon" aria-hidden="true"><use href="#cube" /></svg
-                ><span>Вращать в 3D</span>
+                <img class="icon" src="assets/icons/box.svg" alt="" width="18" height="18" />
+                <span data-i18n="rotate">Вращать в 3D</span>
               </button>
             </figure>
             <div id="scene-block" hidden>
               <div class="scene-heading">
                 <strong id="scene-title">Интерактивная модель</strong>
+                <div id="scene-language"></div>
                 <button id="close-viewer" type="button">К ракурсам</button>
               </div>
               <div id="viewer-mount"></div>
@@ -113,58 +105,55 @@
               class="gallery"
               id="gallery"
               aria-label="Ракурсы модели"
+              data-i18n-aria-label="gallery"
               role="group"
             >
               <a href="catalog/buran-vdnh/assets/hero.webp" aria-current="true"
-                ><img src="catalog/buran-vdnh/assets/hero.webp" alt="" /><span
-                  >Общий вид</span
-                ></a
+                ><img src="catalog/buran-vdnh/assets/hero.webp" alt="" /><span>Общий вид</span></a
               >
               <a href="catalog/buran-vdnh/assets/cockpit.webp"
-                ><img
-                  src="catalog/buran-vdnh/assets/cockpit.webp"
-                  alt=""
-                /><span>Кабина</span></a
+                ><img src="catalog/buran-vdnh/assets/cockpit.webp" alt="" /><span>Кабина</span></a
               >
               <a href="catalog/buran-vdnh/assets/fin.webp"
-                ><img src="catalog/buran-vdnh/assets/fin.webp" alt="" /><span
-                  >Киль</span
-                ></a
+                ><img src="catalog/buran-vdnh/assets/fin.webp" alt="" /><span>Киль</span></a
               >
               <a href="catalog/buran-vdnh/assets/gear.webp"
-                ><img src="catalog/buran-vdnh/assets/gear.webp" alt="" /><span
-                  >Шасси</span
-                ></a
+                ><img src="catalog/buran-vdnh/assets/gear.webp" alt="" /><span>Шасси</span></a
               >
             </div>
           </div>
           <div class="configuration">
             <div class="color-section" hidden>
               <p class="finish-label">
-                Окрас <span id="color-reading" aria-live="polite"></span>
+                <span data-i18n="finish">Окрас</span>
+                <span id="color-reading" aria-live="polite"></span>
               </p>
               <div
                 id="color-options"
                 class="color-options"
                 role="group"
                 aria-label="Выберите окрас"
+                data-i18n-aria-label="chooseFinish"
               ></div>
             </div>
-            <a class="button button-accent" id="order-selected" href="#order"
+            <a class="button button-accent" id="order-selected" href="#order" data-i18n="request"
               >Оставить заявку</a
             >
             <div id="ar-entry" class="ar-entry" hidden>
-              <a id="ar-link" rel="ar" aria-describedby="ar-finish"><img alt="" width="60" height="44" /></a>
-              <span>В своём пространстве<small id="ar-finish"></small></span>
+              <a id="ar-link" rel="ar" aria-describedby="ar-finish"
+                ><img alt="" width="60" height="44"
+              /></a>
+              <span
+                ><span data-i18n="inSpace">В своём пространстве</span><small id="ar-finish"></small
+              ></span>
             </div>
           </div>
         </div>
         <div class="passport" id="passport">
           <div class="passport-label">
-            <h2>Паспорт модели</h2>
+            <h2 data-i18n="passport">Паспорт модели</h2>
             <div id="resources">
-              <a download href="catalog/buran-vdnh/files/Buran-STL.zip"
-                >Комплект STL</a
+              <a download href="catalog/buran-vdnh/files/Buran-STL.zip">Комплект STL</a
               ><a href="catalog/buran-vdnh/">Полная экспозиция</a>
             </div>
           </div>
@@ -184,45 +173,37 @@
           </dl>
         </div>
       </section>
-      <section
-        class="catalog-section"
-        id="catalog"
-        aria-labelledby="catalog-title"
-      >
+      <section class="catalog-section" id="catalog" aria-labelledby="catalog-title">
         <div class="shell">
           <div class="section-head">
-            <h2 id="catalog-title">Каталог моделей</h2>
+            <h2 id="catalog-title" data-i18n="catalogTitle">Каталог моделей</h2>
             <p id="catalog-status" role="status">1 модель</p>
           </div>
           <div id="catalog-tools" class="catalog-tools" hidden>
-            <label class="search-field"
-              ><svg class="icon" aria-hidden="true">
-                <use href="#search-icon" /></svg
-              ><span class="sr-only">Поиск по каталогу</span
-              ><input
+            <label class="search-field">
+              <img class="icon" src="assets/icons/search.svg" alt="" width="18" height="18" />
+              <span class="sr-only" data-i18n="search">Поиск по каталогу</span>
+              <input
                 type="search"
                 id="catalog-search"
+                data-i18n-placeholder="searchHint"
                 placeholder="Название, категория или ключевое слово"
             /></label>
             <label id="category-field" hidden
-              ><span class="sr-only">Категория</span
+              ><span class="sr-only" data-i18n="category">Категория</span
               ><select id="catalog-category"></select
             ></label>
-            <button id="reset-filter" class="plain-action" type="button" hidden>
+            <button id="reset-filter" class="plain-action" type="button" data-i18n="reset" hidden>
               Сбросить
             </button>
           </div>
           <div id="catalog-grid" class="catalog-list">
             <a class="product-card" href="?model=buran-vdnh#model-explorer"
-              ><img
-                src="catalog/buran-vdnh/assets/cockpit.webp"
-                loading="lazy"
-                alt=""
-              /><span class="card-name">Буран БТС-001</span
+              ><img src="catalog/buran-vdnh/assets/cockpit.webp" loading="lazy" alt="" /><span
+                class="card-name"
+                >Буран БТС-001</span
               ><span class="card-category">Космонавтика</span
-              ><span class="card-open"
-                >Открыть <span aria-hidden="true">↗</span></span
-              ></a
+              ><span class="card-open">Открыть <span aria-hidden="true">↗</span></span></a
             >
           </div>
           <p class="empty" id="catalog-empty" hidden>
@@ -233,18 +214,18 @@
       <section class="order-section" id="order" aria-labelledby="order-title">
         <div class="shell order-layout">
           <div class="order-intro">
-            <h2 id="order-title">Заявка<br />в мастерскую</h2>
-            <p>
-              Оставьте контакт для ответа. Уточним окрас и комплектацию, затем
-              согласуем условия и оплату.
+            <h2 id="order-title" data-i18n="enquiryTitle">Заявка в мастерскую</h2>
+            <p data-i18n="enquiryInfo">
+              Оставьте контакт для ответа. Уточним окрас и комплектацию, затем согласуем условия и
+              оплату.
             </p>
           </div>
           <div class="order-card">
             <form id="order-form"></form>
             <noscript
               ><p>
-                Чтобы отправить заявку, включите JavaScript. Ракурсы, полная
-                экспозиция и комплект STL доступны без него.
+                Чтобы отправить заявку, включите JavaScript. Ракурсы, полная экспозиция и комплект
+                STL доступны без него.
               </p></noscript
             >
           </div>
@@ -254,8 +235,9 @@
     <dialog id="inspection-dialog" aria-labelledby="scene-title"></dialog>
     <footer class="site-footer">
       <div class="shell footer-inner">
-        <a class="brand" href="#top">FGK Corp</a><a href="#top">Наверх ↑</a
-        ><a href="admin/">Для мастерской</a>
+        <a class="brand" href="#top">FGK Corp</a>
+        <a href="#top" data-i18n="backTop">Наверх</a>
+        <a id="studio-link" href="admin/" data-i18n="studioLink">Для мастерской</a>
       </div>
     </footer>
   </body>
